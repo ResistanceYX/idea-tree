@@ -31,7 +31,7 @@
 
 ## 节点格式
 
-示例: [nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml)
+示例：[nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml)
 
 - id: 全小写、英文、数字、连字符，全局唯一
 - 死法: 每条含 类型（必须为上表之一）/ 证据 / 推理 / 置信度

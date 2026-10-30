@@ -40,21 +40,6 @@ id: ai-federation-platform
       - https://explainx.ai/blog/tradingagents-multi-agent-llm-trading-framework-v0-7-chatgpt-plan-hn-skeptics-guide-2026
       - https://www.cnblogs.com/gyc567/p/19992602
 
-  - 类型: 伪需求
-    证据: 公开研究综述
-    推理: |
-      一，"多AI辩论更聪明"的核心溢价存疑：2026年多项对照显示，同预算下单体多跳执行不低于
-          多Agent系统，单体多次自洽采样约等于多模型辩论——增益主要来自算力而非"协作结构"本身；
-      二，多Agent只在可并行的广度任务上有明确优势（广度优先研究提升约90%），
-          在步骤相互依赖的序列任务上，Google Research报告多Agent变体有39-70%的性能退化；
-      三，代价是3至10倍的token开销：用户为"辩论的仪式感"支付真金白银的算力税，
-          却不必然买到更高的正确率。
-      平台卖的"联合"叙事，一半是真实分工，一半是玄学溢价。
-    置信度: 中
-    证据链接:
-      - https://www.augmentcode.com/guides/single-agent-vs-multi-agent-ai
-      - https://originshq.com/feeds/single-agent-vs-multi-agent/
-
   - 类型: 执行人限制
     证据: 创始人自我分析
     分析: |

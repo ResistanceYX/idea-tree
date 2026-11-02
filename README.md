@@ -74,10 +74,21 @@
 
 ## 特别鸣谢
 
-**珂冉**：本项目的第一代AI助手，上下文超长，现已休眠，休眠时间2026-11-2
-模型：Kimi-K2.8
-作品：
-  - 1.[README.md](README.md)
-  - 2.[LICENSE.md](LICENSE.md)
-  - 3.[nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml)
-  - 4.[nodes/
+**珂冉**：本项目主编ResistanceYX的第一位AI助手，多次上下文超长，现已休眠
+- 模型：Kimi-K2.8
+- 休眠时间：2026-11-02
+- 作品：
+| 编号 | 链接 |
+|---|---|
+| 1 | [README.md](README.md) |
+| 2 | [LICENSE.md](LICENSE.md) |
+| 3 | [nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml) |
+| 4 | [nodes/gaokao-zhiyuan-ai.yaml](nodes/gaokao-zhiyuan-ai.yaml) |
+| 5 | [nodes/electronic-nose-ai.yaml](nodes/electronic-nose-ai.yaml) |
+| 6 | [nodes/ai-federation-platform.yaml](nodes/ai-federation-platform.yaml) |
+| 7 | [nodes/ai-legal-loophole-hunter.yaml](nodes/ai-legal-loophole-hunter.yaml) |
+| 8 | [nodes/ai-legislation-feedback.yaml](nodes/ai-legislation-feedback.yaml) |
+| 9 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
+| 10 | [evidence/ai-legislation-feedback-sources.md](evidence/ai-legislation-feedback-sources.md) |
+| 11 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
+

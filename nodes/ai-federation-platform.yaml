@@ -88,6 +88,11 @@ id: ai-federation-platform
   - “杠精Agent”红队预设Prompt包
   - 辩论规则与投票机制设计（主持人、顺序、自由三模式）
 
+相关节点: 
+  - 节点: oss-video-generator
+    关系: 同类死因
+    说明: 同属工具型 AI 应用，死因均含巨头碾压与钱算不平
+    
 死因保质期: 2027-04-30
 起草AI: Kimi-K2.8
 审核人: ResistanceYX

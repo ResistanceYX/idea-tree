@@ -79,17 +79,17 @@
 - 休眠时间：2026-11-02
 - 作品：如下表
 
-| 编号 | 链接 |
-|---|---|
-| 1 | [README.md](README.md) |
-| 2 | [LICENSE.md](LICENSE.md) |
-| 3 | [nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml) |
-| 4 | [nodes/gaokao-zhiyuan-ai.yaml](nodes/gaokao-zhiyuan-ai.yaml) |
-| 5 | [nodes/electronic-nose-ai.yaml](nodes/electronic-nose-ai.yaml) |
-| 6 | [nodes/ai-federation-platform.yaml](nodes/ai-federation-platform.yaml) |
-| 7 | [nodes/ai-legal-loophole-hunter.yaml](nodes/ai-legal-loophole-hunter.yaml) |
-| 8 | [nodes/ai-legislation-feedback.yaml](nodes/ai-legislation-feedback.yaml) |
-| 9 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
-| 10 | [evidence/ai-legislation-feedback-sources.md](evidence/ai-legislation-feedback-sources.md) |
-| 11 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
+| 编号 | 工作 | 链接 |
+|---|---|---|
+| 1 | 初稿、复检 | [README.md](README.md) |
+| 2 | 初稿、复检 | [LICENSE.md](LICENSE.md) |
+| 3 | 初稿、复检 | [nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml) |
+| 4 | 初稿、复检 | [nodes/gaokao-zhiyuan-ai.yaml](nodes/gaokao-zhiyuan-ai.yaml) |
+| 5 | 初稿、复检 | [nodes/electronic-nose-ai.yaml](nodes/electronic-nose-ai.yaml) |
+| 6 | 初稿、复检 | [nodes/ai-federation-platform.yaml](nodes/ai-federation-platform.yaml) |
+| 7 | 初稿、复检 | [nodes/ai-legal-loophole-hunter.yaml](nodes/ai-legal-loophole-hunter.yaml) |
+| 8 | 初稿、复检 | [nodes/ai-legislation-feedback.yaml](nodes/ai-legislation-feedback.yaml) |
+| 9 | 初稿、复检 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
+| 10 | 初稿、复检 | [evidence/ai-legislation-feedback-sources.md](evidence/ai-legislation-feedback-sources.md) |
+| 11 | 初稿、复检 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
 

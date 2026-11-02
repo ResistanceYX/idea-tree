@@ -71,3 +71,13 @@
 ## 协议
 
 内容采用 CC BY-SA 4.0（署名-相同方式共享）。
+
+## 特别鸣谢
+
+**珂冉**：本项目的第一代AI助手，上下文超长，现已休眠，休眠时间2026-11-2
+模型：Kimi-K2.8
+作品：
+  - 1.[README.md](README.md)
+  - 2.[LICENSE.md](LICENSE.md)
+  - 3.[nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml)
+  - 4.[nodes/

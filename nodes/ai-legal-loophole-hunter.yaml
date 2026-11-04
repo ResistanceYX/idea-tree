@@ -11,7 +11,7 @@ id: ai-legal-loophole-hunter
     证据: 公开研究（一手论文及基准测试）
     推理: |
       一，幻觉率证伪：斯坦福团队对三大主流法律AI工具的对照测试（2025年经同行评议发表）显示，
-          接了法律数据库的专用工具仍有17%至34%的幻觉率，通用大模型约43%——法律问答错一个案例是瑕疵，
+          接了法律数据库的专用工具仍有17%至33%的幻觉率，通用大模型约43%——法律问答错一个案例是瑕疵，
           "找漏洞"错一个条款是事故；
       二，引用核验证伪：EACL 2026的CLAUSE基准用7500份扰动合同测试法律矛盾检测，
           最强模型在"法律引用匹配"任务上准确率不足14%——连引用对不对都查不清，遑论认定漏洞；
@@ -20,7 +20,7 @@ id: ai-legal-loophole-hunter
       核心承诺被系统性证伪：现在的模型是"听起来专业的法学生"，不是"不会漏的审查官"。
     置信度: 高
     证据链接:
-      - https://hai.stanford.edu/news/ai-trial-legal-models-hallucinate-1-out-6-or-more-benchmarking-queries
+      - https://onlinelibrary.wiley.com/doi/full/10.1111/jels.12413
       - https://github.com/mannanxanand/CLAUSE-Benchmark
       - https://kili-technology.com/blog/domain-specific-llm-benchmarks-guide
 
@@ -58,7 +58,7 @@ id: ai-legal-loophole-hunter
       三，法律AI的可靠性缺陷已被证明是系统性的（见"理论证伪"条），信任无法靠营销话术建立。
     置信度: 高
     证据链接:
-      - https://hai.stanford.edu/news/ai-trial-legal-models-hallucinate-1-out-6-or-more-benchmarking-queries
+      - https://onlinelibrary.wiley.com/doi/full/10.1111/jels.12413
       - https://github.com/mannanxanand/CLAUSE-Benchmark
 
   - 类型: 执行人限制

@@ -16,10 +16,11 @@ id: internet-weekly-archive
     案例: 跨市场新闻回避调查，仅作需求侧间接旁证
     证据链接:
       - https://ora.ox.ac.uk/objects/uuid:bdec3e82-9aee-4301-9556-9d908881c74a
+      - https://lab.imedd.org/en/reuters-institute-trust-in-news-is-at-a-record-low-with-access-dominated-by-platforms/
     置信度: 中
 
   - 类型: 巨头碾压
-    证据: AnyKnew已聚合数十家站点热榜，支持定制站点并按日、周、月查看热点归档；今日热榜覆盖微信、今日头条、百度、知乎、微博、贴吧、豆瓣、虎扑、GitHub、抖音等平台，并提供官方API
+    证据: AnyKnew已聚合数十家站点热榜，支持定制站点并按日、周、月查看热点归档；今日热榜覆盖微信、今日头条、百度、知乎、微博、贴吧、豆瓣、虎扑、GitHub、抖音等平台，并提供官方API与历史数据接口；另有rebang.today等同类全网热榜产品
     推理: |
       一，AnyKnew已经覆盖“跨站热点简报＋历史归档”的基础功能，今日热榜则压低了采集和展示多平台热榜的门槛，原方案难以仅凭聚合与存档建立差异化；
       二，现成产品可公网直接浏览，先把用户对基础简报与归档服务的价格锚点压在低位；剩下可供区分的跨圈层策展、史料核对和编年史叙事，又恰好是成本最高的部分；
@@ -27,7 +28,11 @@ id: internet-weekly-archive
     案例: 全网热点聚合与历史归档产品
     证据链接:
       - https://www.anyknew.com/faq
+      - https://www.anyknew.com/
+      - https://tophub.today/
       - https://github.com/ieliwb/tophub-api
+      - https://www.tophubdata.com/
+      - https://rebang.today/
     置信度: 高
 
   - 类型: 钱算不平
@@ -39,7 +44,9 @@ id: internet-weekly-archive
     案例: 国际在线新闻付费调查与现存归档产品，均为间接证据
     证据链接:
       - https://www.anyknew.com/faq
+      - https://www.anyknew.com/
       - https://ora.ox.ac.uk/objects/uuid:bdec3e82-9aee-4301-9556-9d908881c74a
+      - https://wpengine.com/blog/reuters-digital-news-report-2026-insights/
     置信度: 中
 
   - 类型: 执行人限制

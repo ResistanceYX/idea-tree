@@ -19,9 +19,10 @@ id: electronic-nose-ai
       2026年2月Osmo宣布7000万美元B轮并扩建6万平方英尺生产设施；
       2025年10月Owlstone获ARPA-H POSEIDON项目最高4910万美元，
       目标为30种以上实体瘤的一期家用呼气检测。
-    证据链接:
+    证据链接: 
       - https://www.businesswire.com/news/home/20260204293785/en/Osmo-Digital-Scent-Design-Company-Announces-%2470M-in-Series-B-Funding-and-Executive-Leadership-Team-to-Scale-AI-Powered-Olfaction-Technology
       - https://www.news-medical.net/news/20251013/Owlstone-Medical-wins-up-to-24491-million-award-from-ARPA-H-to-develop-at-home-multi-cancer-early-detection-tests.aspx
+      - https://www.osmo.ai/about ##第一条可能屏蔽了AI，无法自动访问时可访问本条
     置信度: 高
     
   - 类型: 条件已死
@@ -40,6 +41,7 @@ id: electronic-nose-ai
     证据链接:
       - https://www.businesswire.com/news/home/20260204293785/en/Osmo-Digital-Scent-Design-Company-Announces-%2470M-in-Series-B-Funding-and-Executive-Leadership-Team-to-Scale-AI-Powered-Olfaction-Technology
       - https://www.iim.net.cn/2242/view-290800-1.html
+      - https://www.osmo.ai/about ##第一条可能屏蔽了AI，无法自动访问时可访问本条
     置信度: 高
     
   - 类型: 信任成本

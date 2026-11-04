@@ -11,7 +11,7 @@ id: ai-legal-loophole-hunter
     证据: 公开研究（一手论文及基准测试）
     推理: |
       一，幻觉率证伪：斯坦福团队对三大主流法律AI工具的对照测试（2025年经同行评议发表）显示，
-          接了法律数据库的专用工具仍有17%至33%的幻觉率，通用大模型约43%——法律问答错一个案例是瑕疵，
+          接了法律数据库的专用工具仍有17%至34%的幻觉率，通用大模型约43%——法律问答错一个案例是瑕疵，
           "找漏洞"错一个条款是事故；
       二，引用核验证伪：EACL 2026的CLAUSE基准用7500份扰动合同测试法律矛盾检测，
           最强模型在"法律引用匹配"任务上准确率不足14%——连引用对不对都查不清，遑论认定漏洞；
@@ -20,21 +20,20 @@ id: ai-legal-loophole-hunter
       核心承诺被系统性证伪：现在的模型是"听起来专业的法学生"，不是"不会漏的审查官"。
     置信度: 高
     证据链接:
-      - https://legaltek.ai/AI_Ethics_Case_Law_Report_2023-2026.pdf
+      - https://hai.stanford.edu/news/ai-trial-legal-models-hallucinate-1-out-6-or-more-benchmarking-queries
       - https://github.com/mannanxanand/CLAUSE-Benchmark
       - https://kili-technology.com/blog/domain-specific-llm-benchmarks-guide
 
   - 类型: 巨头碾压
     证据: 公开案例
     推理: |
-      一，免费锚点由国家提供：司法部主办的中国法律服务网（12348法网）由专业律师免费解答，
-          累计服务超3000万人次，另有各地法律援助中心无偿服务——基础法律咨询的付费意愿被官方免费服务封顶；
+      一，免费锚点由国家提供：司法部2021年披露，中国法律服务网自2018年上线以来已提供法律咨询3900多万人次，是公众免费获取法律服务的渠道；司法部2023年进一步明确，该网汇聚律师、法律援助人员等专业人员，免费提供法律咨询服务——基础法律咨询的付费意愿被官方免费服务封顶；
       二，真实买家不要无责任主体的产品：企业法务与合规部门采购漏洞检索类服务时，
-          买的是附带执业责任的"律师签名"，AI报告承担不起对等责任。
+          买的是附带执业责任的“律师签名”，AI报告承担不起对等责任。
     置信度: 高
     证据链接:
-      - https://info.imlaw.cn/wenda/78188.html
-      - https://ncx.nc.gov.cn/ncxrmzf/xydt/202405/ec19c44be9654387b8324fca284e8f4c/files/bfce67996f4c45fb9193d3ac552b61bc.pdf
+      - https://www.moj.gov.cn/pub/sfbgw/fzgz/fzgzggflfwx/fzgzggflfw/202112/t20211228_445082.html
+      - https://www.moj.gov.cn/pub/sfbgw/fzgz/fzgzggflfwx/fzgzggflfw/202307/t20230713_482575.html
 
   - 类型: 政策风险
     证据: 公开法规+内部推演
@@ -59,7 +58,7 @@ id: ai-legal-loophole-hunter
       三，法律AI的可靠性缺陷已被证明是系统性的（见"理论证伪"条），信任无法靠营销话术建立。
     置信度: 高
     证据链接:
-      - https://legaltek.ai/AI_Ethics_Case_Law_Report_2023-2026.pdf
+      - https://hai.stanford.edu/news/ai-trial-legal-models-hallucinate-1-out-6-or-more-benchmarking-queries
       - https://github.com/mannanxanand/CLAUSE-Benchmark
 
   - 类型: 执行人限制

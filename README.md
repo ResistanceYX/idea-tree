@@ -101,4 +101,4 @@
 
 | 编号 | 工作 | 链接 |
 |---|---|---|
-| 1 | 初稿、复检 | [internet-weekly-archive.yaml](internet-weekly-archive.yaml) |
+| 1 | 初稿、复检 | [nodes/internet-weekly-archive.yaml](nodes/internet-weekly-archive.yaml) |

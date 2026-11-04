@@ -93,3 +93,12 @@
 | 10 | 初稿、复检 | [evidence/ai-legislation-feedback-sources.md](evidence/ai-legislation-feedback-sources.md) |
 | 11 | 初稿、复检 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
 
+
+**叙棠**：本项目主编ResistanceYX的第二位AI助手，工作中
+- 模型：Kimi-K3. 1
+- 休眠时间：未知
+- 作品：如下表
+
+| 编号 | 工作 | 链接 |
+|---|---|---|
+| 1 | 初稿、复检 | [internet-weekly-archive.yaml](internet-weekly-archive.yaml) |

@@ -109,7 +109,7 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 7 | 初稿、复检 | [nodes/ai-legal-loophole-hunter.yaml](nodes/ai-legal-loophole-hunter.yaml) |
 | 8 | 初稿、复检 | [nodes/ai-legal-loophole-hunter_legislation-feedback.yaml](nodes/ai-legal-loophole-hunter_legislation-feedback.yaml) |
 | 9 | 初稿、复检 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
-| 10 | 初稿、复检 | [evidence/ai-legislation-feedback-sources.md](evidence/ai-legislation-feedback-sources.md) |
+| 10 | 初稿、复检 | [evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md](evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md) |
 | 11 | 初稿、复检 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
 
 

@@ -86,7 +86,7 @@ id: ai-legal-loophole-hunter
   - 立法征求意见动向监测提醒
 
 相关节点:
-  - 节点: ai-legislation-feedback
+  - 节点: ai-legal-loophole-hunter_legislation-feedback
     关系: 弱化变体（同源）
     说明: |
       同一核心机制（AI分析法律文本）的商业版与本弱化版。弱化轴：

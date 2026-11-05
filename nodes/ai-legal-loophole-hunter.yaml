@@ -77,7 +77,7 @@ id: ai-legal-loophole-hunter
     但采购对象是附带责任主体的专业服务，本产品形态不在其采购清单上。
   附件: 无
   边界: |
-    本节点可拆零件的价值在立法反馈方向（见备选节点ai-legislation-feedback），
+    本节点可拆零件的价值在立法反馈方向（见直接派生节点ai-legal-loophole-hunter_legislation-feedback），
     不在商业漏洞报告方向。
 
 可拆零件:

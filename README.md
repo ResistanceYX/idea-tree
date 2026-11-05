@@ -102,3 +102,4 @@
 | 编号 | 工作 | 链接 |
 |---|---|---|
 | 1 | 初稿、复检 | [nodes/internet-weekly-archive.yaml](nodes/internet-weekly-archive.yaml) |
+| 2 | 初稿、复检 | [nodes/ai-game-modifier-platform.yaml](nodes/ai-game-modifier-platform.yaml) |

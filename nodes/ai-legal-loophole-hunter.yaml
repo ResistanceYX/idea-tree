@@ -87,7 +87,7 @@ id: ai-legal-loophole-hunter
 
 相关节点:
   - 节点: ai-legal-loophole-hunter_legislation-feedback
-    关系: 弱化变体（同源）
+    关系: 直接派生（弱化变体）
     说明: |
       同一核心机制（AI分析法律文本）的商业版与本弱化版。弱化轴：
       付费方从企业/个人变为无；输出从"漏洞结论"降为"意见草稿"；

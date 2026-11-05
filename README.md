@@ -122,3 +122,4 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 |---|---|---|
 | 1 | 初稿、复检 | [nodes/internet-weekly-archive.yaml](nodes/internet-weekly-archive.yaml) |
 | 2 | 初稿、复检 | [nodes/ai-game-modifier-platform.yaml](nodes/ai-game-modifier-platform.yaml) |
+| 3 | 初稿、复检 | [nodes/ai-red-visual-novel.yaml](nodes/ai-red-visual-novel.yaml) |

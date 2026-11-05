@@ -1,4 +1,4 @@
-# 文献摘录卡：ai-legislation-feedback 死法二（伪需求）
+# 文献摘录卡：ai-legal-loophole-hunter_legislation-feedback 死法二（伪需求）
 
 来源：《法案公布征求意见的法治逻辑及实效提升》，《人大复印报刊资料》
 （原载《法治与社会》2024年，作者抓取中国人大网2008—2022年全部277次征求意见数据）

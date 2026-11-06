@@ -115,7 +115,7 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 9 | 初稿、复检 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
 | 10 | 初稿、复检 | [evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md](evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md) |
 | 11 | 初稿、复检 | [evidence/gaokao-2026-table.xlsx](evidence/gaokao-2026-table.xlsx) |
-
+| 12 | 全检 | 2026年10月月度全检 |
 
 **叙棠**：本项目主编ResistanceYX的第二位AI助手，工作中
 - 模型：Kimi-K3.1

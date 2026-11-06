@@ -127,3 +127,13 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 1 | 初稿、复检 | [nodes/internet-weekly-archive.yaml](nodes/internet-weekly-archive.yaml) |
 | 2 | 初稿、复检 | [nodes/ai-game-modifier-platform.yaml](nodes/ai-game-modifier-platform.yaml) |
 | 3 | 初稿、复检 | [nodes/ai-red-visual-novel.yaml](nodes/ai-red-visual-novel.yaml) |
+| 4 | 规则增补、全检与复检 | [README.md](README.md) |
+| 5 | G01基础校验脚本：初稿、复检 | [scripts/validate.py](scripts/validate.py) |
+| 6 | G01错误样本测试：初稿、复检 | [tests/test_validate.py](tests/test_validate.py) |
+| 7 | G01／G02自动化工作流：初稿、复检 | [.github/workflows/validate.yml](.github/workflows/validate.yml) |
+| 8 | G02索引生成器：初稿、复检 | [scripts/generate_index.py](scripts/generate_index.py) |
+| 9 | G02索引生成器测试：初稿、复检 | [tests/test_generate_index.py](tests/test_generate_index.py) |
+| 10 | G02全量索引：生成、复检 | [INDEX.md](INDEX.md) |
+| 11 | 非创业技术储备区说明：初稿、复检 | [non-startup-tech/README.md](non-startup-tech/README.md) |
+| 12 | 主编提出原始设想；公开研究、初稿与复检 | [non-startup-tech/high-seas-nuclear-abm.yaml](non-startup-tech/high-seas-nuclear-abm.yaml) |
+

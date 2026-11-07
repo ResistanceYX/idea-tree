@@ -146,3 +146,10 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 13 | 初稿、复检 | [nodes/alzheimer-dclva-surgery.yaml](nodes/alzheimer-dclva-surgery.yaml) |
 | 14 | 初稿、复检 | [nodes/long-term-learning-companion-ai.yaml](nodes/long-term-learning-companion-ai.yaml) |
 | 15 | 初稿、复检 | [nodes/cloud-research-automation-agent.yaml](nodes/cloud-research-automation-agent.yaml) |
+| 16 | 节点备注字段、节点格式v1.7及示例调整：规则增补、复检 | [README.md](README.md) |
+| 17 | 云端科研Agent垂直参照关系：双向关系维护、复检 | [nodes/ai-federation-platform.yaml](nodes/ai-federation-platform.yaml) |
+| 18 | G03离线备份脚本：初稿、复检 | [scripts/backup_repository.py](scripts/backup_repository.py) |
+| 19 | G03独立恢复脚本：初稿、复检 | [scripts/restore_backup.py](scripts/restore_backup.py) |
+| 20 | G03备份与恢复测试：初稿、复检 | [tests/test_backup_repository.py](tests/test_backup_repository.py) |
+| 21 | G03备份说明、执行记录与README入口：初稿、复检 | [BACKUP.md](BACKUP.md) |
+| 22 | G03首次U盘备份与恢复验证：Windows 10操作指导、排障及执行记录整理 | [BACKUP.md](BACKUP.md) |

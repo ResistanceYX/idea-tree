@@ -93,6 +93,9 @@ id: ai-federation-platform
   - 节点: oss-video-generator
     关系: 同类死因
     说明: 同属工具型 AI 应用，死因均含巨头碾压与钱算不平
+  - 节点: cloud-research-automation-agent
+    关系: 垂直领域参照
+    说明: 科研云端Agent可作为多模型任务编排的垂直参照，但不构成母题的直接派生子题
     
 死因保质期: 2027-04-30
 起草AI: 珂冉（Kimi-K2.8）

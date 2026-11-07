@@ -136,5 +136,5 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 10 | G02全量索引：生成、复检 | [INDEX.md](INDEX.md) |
 | 11 | 非创业技术储备区说明：初稿、复检 | [non-startup-tech/README.md](non-startup-tech/README.md) |
 | 12 | 主编提出原始设想；公开研究、初稿与复检 | [non-startup-tech/high-seas-nuclear-abm.yaml](non-startup-tech/high-seas-nuclear-abm.yaml) |
-| 13 | 初稿、复检 | [nodes/alzheimer-dclva-surgery](nodes/alzheimer-dclva-surgery) |
-| 14 | 初稿、复检 | [nodes/long-term-learning-companion-ai](nodes/long-term-learning-companion-ai)
+| 13 | 初稿、复检 | [nodes/alzheimer-dclva-surgery.yaml](nodes/alzheimer-dclva-surgery.yaml) |
+| 14 | 初稿、复检 | [nodes/long-term-learning-companion-ai.yaml](nodes/long-term-learning-companion-ai.yaml)

@@ -143,4 +143,5 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 11 | 非创业技术储备区说明：初稿、复检 | [non-startup-tech/README.md](non-startup-tech/README.md) |
 | 12 | 主编提出原始设想；公开研究、初稿与复检 | [non-startup-tech/high-seas-nuclear-abm.yaml](non-startup-tech/high-seas-nuclear-abm.yaml) |
 | 13 | 初稿、复检 | [nodes/alzheimer-dclva-surgery.yaml](nodes/alzheimer-dclva-surgery.yaml) |
-| 14 | 初稿、复检 | [nodes/long-term-learning-companion-ai.yaml](nodes/long-term-learning-companion-ai.yaml)
+| 14 | 初稿、复检 | [nodes/long-term-learning-companion-ai.yaml](nodes/long-term-learning-companion-ai.yaml) |
+| 15 | 初稿、复检 | [nodes/cloud-research-automation-agent.yaml](nodes/cloud-research-automation-agent.yaml) |

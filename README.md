@@ -36,10 +36,11 @@
 ## 节点格式 v1.7
 
 示例：
-    - 首个节点／历史示例：[大肥鱼赛博墓地](nodes/dafeiyu-cyber-cemetery.yaml)
-    - 死透节点示例：[AI游戏修改器及其平台](nodes/ai-game-modifier-platform.yaml)
-    - 复活候选节点示例：[AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml)
+- 首个节点／历史示例：[大肥鱼赛博墓地](nodes/dafeiyu-cyber-cemetery.yaml)
+- 死透节点示例：[AI游戏修改器及其平台](nodes/ai-game-modifier-platform.yaml)
+- 复活候选节点示例：[AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml)
 
+格式：
 - id: 全小写、全局唯一。普通节点仅使用英文、数字和连字符；直接派生节点可以在各层母题id与子题短名之间使用下划线，下划线仅用于表示派生层级，不得用于普通命名。
   直接派生节点还须遵守下文“母题前缀规则”（v1.6 修订）
 - 标题: 节点在档案、索引和科技树中展示的人类可读名称，应简明概括点子的对象与产品形态，可使用中文、产品名和必要限定语；

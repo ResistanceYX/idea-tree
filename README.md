@@ -153,3 +153,4 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 20 | G03备份与恢复测试：初稿、复检 | [tests/test_backup_repository.py](tests/test_backup_repository.py) |
 | 21 | G03备份说明、执行记录与README入口：初稿、复检 | [BACKUP.md](BACKUP.md) |
 | 22 | G03首次U盘备份与恢复验证：Windows 10操作指导、排障及执行记录整理 | [BACKUP.md](BACKUP.md) |
+| 23 | 初稿、复检 | [nodes/knowledge-base-ai-video-generator.yaml](nodes/knowledge-base-ai-video-generator.yaml) |

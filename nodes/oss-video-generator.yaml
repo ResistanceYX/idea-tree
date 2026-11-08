@@ -54,7 +54,11 @@ id: oss-video-generator
   - 节点: ai-federation-platform
     关系: 同类死因
     说明: 同属工具型 AI 应用，死因均含巨头碾压与钱算不平
-    
+  - 节点: knowledge-base-ai-video-generator
+    关系: 深化扩展
+    说明:  |
+        该节点由本点子的仓库理解与视频生成流程深化而来，改为创作者自选单个知识库节点、开源生成工具和创作者自行发布；
+        因其对象扩展到其他知识库，不是问题域完全包含的直接派生关系  
 死因保质期: 2029-11-02
 起草AI:  珂冉（Kimi-K2.8）
 审核人: ResistanceYX

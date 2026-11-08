@@ -175,3 +175,6 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 21 | G03备份说明、执行记录与README入口：初稿、复检 | [BACKUP.md](BACKUP.md) |
 | 22 | G03首次U盘备份与恢复验证：Windows 10操作指导、排障及执行记录整理 | [BACKUP.md](BACKUP.md) |
 | 23 | 初稿、复检 | [nodes/knowledge-base-ai-video-generator.yaml](nodes/knowledge-base-ai-video-generator.yaml) |
+| 24 | 开源仓库视频节点深化扩展关系：双向关系维护、复检 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
+| 25 | Issue #6仓库简介与Topics：文案拟定、设置指导及完成复核 | [Issue #6](https://github.com/ResistanceYX/idea-tree/issues/6) |
+| 26 | Issue #6 README需求方入口、AI用户说明与运行维护分区：初稿、复检 | [README.md](README.md) |

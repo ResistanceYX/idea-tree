@@ -1,4 +1,4 @@
-name: 校验节点并维护索引
+name: 校验节点并维护索引与复核清单
 
 on:
   push:
@@ -9,8 +9,11 @@ on:
       - "README.md"
       - "scripts/validate.py"
       - "scripts/generate_index.py"
+      - "scripts/generate_review.py"
       - "tests/**"
       - "INDEX.md"
+      - "REVIEW.md"
+      - "review_records.yaml"
       - ".github/workflows/validate.yml"
   pull_request:
     paths:
@@ -19,8 +22,11 @@ on:
       - "README.md"
       - "scripts/validate.py"
       - "scripts/generate_index.py"
+      - "scripts/generate_review.py"
       - "tests/**"
       - "INDEX.md"
+      - "REVIEW.md"
+      - "review_records.yaml"
       - ".github/workflows/validate.yml"
   workflow_dispatch:
 
@@ -33,7 +39,7 @@ concurrency:
 
 jobs:
   validate:
-    name: 结构校验、测试与索引同步
+    name: 结构校验、测试、索引与复核清单同步
     runs-on: ubuntu-latest
     steps:
       - name: 检出仓库
@@ -57,16 +63,21 @@ jobs:
         if: github.event_name == 'pull_request'
         run: python scripts/generate_index.py --root . --check
 
-      - name: 更新并提交 main 索引
+      - name: 检查 PR 复核清单是否同步
+        if: github.event_name == 'pull_request'
+        run: python scripts/generate_review.py --root . --check
+
+      - name: 更新并提交 main 索引与复核清单
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           python scripts/generate_index.py --root .
-          if git diff --quiet -- INDEX.md; then
-            echo "INDEX.md 已是最新，无需提交。"
+          python scripts/generate_review.py --root .
+          if git diff --quiet -- INDEX.md REVIEW.md; then
+            echo "INDEX.md 与 REVIEW.md 已是最新，无需提交。"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add INDEX.md
-          git commit -m "chore: 自动更新索引"
+          git add INDEX.md REVIEW.md
+          git commit -m "chore: 自动更新索引与复核清单"
           git push

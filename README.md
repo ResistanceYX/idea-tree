@@ -179,3 +179,10 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 24 | 开源仓库视频节点深化扩展关系：双向关系维护、复检 | [nodes/oss-video-generator.yaml](nodes/oss-video-generator.yaml) |
 | 25 | Issue #6仓库简介与Topics：文案拟定、设置指导及完成复核 | [Issue #6](https://github.com/ResistanceYX/idea-tree/issues/6) |
 | 26 | Issue #6 README需求方入口、AI用户说明与运行维护分区：初稿、复检 | [README.md](README.md) |
+| 27 | Issue #7静态索引站与首发介绍帖：任务拆分、验收标准与Issue初稿 | [Issue #7](https://github.com/ResistanceYX/idea-tree/issues/7) |
+| 28 | Issue #8分类法覆盖压力测试与二级分类试点：外部建议评估、G16整理及Issue初稿 | [Issue #8](https://github.com/ResistanceYX/idea-tree/issues/8) |
+| 29 | G04死因保质期复核清单：初稿、复检 | [REVIEW.md](REVIEW.md) |
+| 30 | G04人工复核记录格式：设计、初稿与复检 | [review_records.yaml](review_records.yaml) |
+| 31 | G04复核清单自动生成器：初稿、复检 | [scripts/generate_review.py](scripts/generate_review.py) |
+| 32 | G04复核清单自动化测试：初稿、复检 | [tests/test_generate_review.py](tests/test_generate_review.py) |
+| 33 | G04索引与复核清单工作流联动及README入口：初稿、复检 | [.github/workflows/validate.yml](.github/workflows/validate.yml) |

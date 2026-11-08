@@ -25,6 +25,8 @@
 - [复活候选示例：AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml)
 - [已复活示例：云端全流程科研自动化Agent](nodes/cloud-research-automation-agent.yaml)。
 
+## 项目运行与维护
+
 - **工作方式**：AI初稿，人类审核定案。
 - **全量索引**：[INDEX.md](INDEX.md)（由节点自动生成的检索目录与死因统计，请勿手工维护节点数据）。
 - **离线备份与恢复**：[BACKUP.md](BACKUP.md)（月度U盘备份的范围、执行记录与恢复方法）。

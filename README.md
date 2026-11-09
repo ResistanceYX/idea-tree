@@ -29,6 +29,7 @@
 
 - **工作方式**：AI初稿，人类审核定案。
 - **全量索引**：[INDEX.md](INDEX.md)（由节点自动生成的检索目录与死因统计，请勿手工维护节点数据）。
+- **公开静态索引站**：[idea-tree 静态站](https://resistanceyx.github.io/idea-tree/)（由 `nodes/*.yaml` 自动生成，支持检索、组合筛选与单节点档案页；通过 GitHub Pages 工作流更新）。
 - **离线备份与恢复**：[BACKUP.md](BACKUP.md)（月度U盘备份的范围、执行记录与恢复方法）。
 - **死因保质期复核**：[REVIEW.md](REVIEW.md)（由节点与人工复核记录自动生成；新节点自动进入待复核清单，复核结论写入[review_records.yaml](review_records.yaml)，请勿手工编辑表格）。
 - **决策时段建议**：涉及判断性的修改（复活状态、置信度、分类法变动），尽量避免在凌晨0点至5点定案，可等次日清醒后斟酌执行。
@@ -186,3 +187,7 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 31 | G04复核清单自动生成器：初稿、复检 | [scripts/generate_review.py](scripts/generate_review.py) |
 | 32 | G04复核清单自动化测试：初稿、复检 | [tests/test_generate_review.py](tests/test_generate_review.py) |
 | 33 | G04索引与复核清单工作流联动及README入口：初稿、复检 | [.github/workflows/validate.yml](.github/workflows/validate.yml) |
+| 34 | G14公开静态站生成器：初稿、复检 | [scripts/generate_site.py](scripts/generate_site.py) |
+| 35 | G14静态站自动化测试：初稿、复检 | [tests/test_generate_site.py](tests/test_generate_site.py) |
+| 36 | G14静态站样式与筛选交互：初稿、复检 | [site/assets/style.css](site/assets/style.css)、[site/assets/site.js](site/assets/site.js) |
+| 37 | G14 GitHub Pages部署工作流及README入口：初稿、复检 | [.github/workflows/pages.yml](.github/workflows/pages.yml) |

@@ -61,6 +61,9 @@ id: dafeiyu-cyber-cemetery
   - 节点: internet-weekly-archive
     关系: 同源母题
     说明: 都试图保存易逝的互联网文化；大肥鱼节点侧重单一热梗的悼念与存档，本节点侧重持续编年与检索
+  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+    关系: 同源现象
+    说明: 大肥鱼赛博墓地是弃养后的悼念与存档设想，本节点是使大肥鱼在B站自主刷站和互动的插件技术；二者共享现象但不互相包含  
     
 死因保质期: 2026-11-29
 起草AI:  珂冉（Kimi-K2.8）

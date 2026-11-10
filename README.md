@@ -211,3 +211,6 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 | 35 | G14静态站自动化测试：初稿、复检 | [tests/test_generate_site.py](tests/test_generate_site.py) |
 | 36 | G14静态站样式与筛选交互：初稿、复检 | [site/assets/style.css](site/assets/style.css)、[site/assets/site.js](site/assets/site.js) |
 | 37 | G14 GitHub Pages部署工作流及README入口：初稿、复检 | [.github/workflows/pages.yml](.github/workflows/pages.yml) |
+| 38 | 初稿、复检 | [nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) |
+| 39 | 大肥鱼同源现象关系：双向关系维护、复检 | [nodes/dafeiyu-cyber-cemetery.yaml](nodes/dafeiyu-cyber-cemetery.yaml) |
+

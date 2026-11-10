@@ -17,7 +17,7 @@
 
 ## 复核清单
 
-当前共15个正式节点：待复核15个，已复核0个，暂缓0个。
+当前共16个正式节点：待复核16个，已复核0个，暂缓0个。
 
 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
 |---|---|---|---|---|---|---|
@@ -30,6 +30,7 @@
 | [云端全流程科研自动化Agent](nodes/cloud-research-automation-agent.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
 | [长期伴随学习辅助AI](nodes/long-term-learning-companion-ai.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
 | [AI拦截仿真对话反诈Agent](nodes/ai-scam-interception-agent.yaml) | 2026-11-10 | 2027-11-10 | 待复核 | — | — | — |
+| [开源哔哩哔哩自主宠物鲸Agent插件](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) | 2026-11-11 | 2027-11-11 | 待复核 | — | — | — |
 | [AI电子鼻（通用气味识别硬件创业）](nodes/electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
 | [AI游戏修改器及其平台](nodes/ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
 | [AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |

@@ -221,3 +221,5 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 
 | 编号 | 工作 | 链接 |
 |---|---|---|
+| 1 | 初稿、复检 | [nodes/github-interesting-repository-discovery-agent-plugin.yaml](nodes/github-interesting-repository-discovery-agent-plugin.yaml) |
+| 2 | 13号与19号跨平台同类工作流：双向关系维护、复检 | [nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) |

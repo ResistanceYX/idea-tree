@@ -186,7 +186,13 @@ id: bilibili-autonomous-pet-whale-agent-plugin
   - 节点: dafeiyu-cyber-cemetery
     关系: 同源现象
     说明: 两者都围绕B站大肥鱼现象；本节点记录自主刷站与互动Agent的实现技术，赛博墓地节点记录弃养后的悼念与存档设想，不是直接派生关系
-    
+  - 节点: github-interesting-repository-discovery-agent-plugin
+    关系: 跨平台同类工作流
+    说明: |
+      两者都在DSH中串联平台内容采集、模型筛选或摘要、Markdown日报与定时任务；
+      本节点处理B站视频筛选、角色化私人日报与可选账号互动，GitHub节点处理公开仓库发现，
+      不是直接派生关系，也不共享同一内容平台或完整产品边界
+      
 死因保质期: 2027-11-11
 起草AI: 叙棠（Kimi-K3.1）
 审核人: ResistanceYX

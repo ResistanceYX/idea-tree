@@ -6,11 +6,12 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import shutil
 import sys
 from collections import Counter
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import yaml
 
@@ -127,6 +128,150 @@ def source_label(url: str, index: int) -> str:
     return f"来源{index} · {host}"
 
 
+ARCHIVE_DEFINITIONS = {
+    "预审": "基于公开证据与推演的事前判断，不是已经发生的失败。",
+    "验尸": "来自真实实施、停止、失败或转向记录，不以纯粹假设替代实际经历。",
+}
+
+
+def archive_term(archive: str) -> str:
+    tag = f'<span class="status-tag archive-tag">{escape(archive)}</span>'
+    definition = ARCHIVE_DEFINITIONS.get(archive)
+    if not definition:
+        return tag
+    return (
+        f'<span class="archive-term">{tag}<details class="term-tip">'
+        f'<summary aria-label="了解{escape(archive)}">?</summary>'
+        f'<p>{escape(definition)}</p></details></span>'
+    )
+
+
+def parse_acknowledgements(root: Path) -> list[dict]:
+    readme = root / "README.md"
+    if not readme.is_file():
+        return []
+    content = readme.read_text(encoding="utf-8")
+    marker = re.search(r"^##\s+特别鸣谢\s*$", content, flags=re.MULTILINE)
+    if not marker:
+        return []
+    section = content[marker.end():]
+    next_heading = re.search(r"^##\s+", section, flags=re.MULTILINE)
+    if next_heading:
+        section = section[:next_heading.start()]
+
+    people: list[dict] = []
+    current: dict | None = None
+    for line in section.splitlines():
+        person_match = re.match(r"^\*\*(.+?)\*\*：(.*)$", line.strip())
+        if person_match:
+            current = {
+                "name": person_match.group(1).strip(),
+                "description": person_match.group(2).strip(),
+                "metadata": [],
+                "works": [],
+            }
+            people.append(current)
+            continue
+        if current is None:
+            continue
+        metadata_match = re.match(r"^-\s*([^：]+)：(.*)$", line.strip())
+        if metadata_match and metadata_match.group(1).strip() != "作品":
+            current["metadata"].append((metadata_match.group(1).strip(), metadata_match.group(2).strip()))
+            continue
+        row_match = re.match(r"^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$", line)
+        if not row_match:
+            continue
+        number, work, link_cell = row_match.groups()
+        links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", link_cell)
+        private_targets = (
+            "evidence/",
+            "non-startup-tech/",
+        )
+        if any(target.lstrip("./").startswith(private_targets) for _label, target in links):
+            continue
+        current["works"].append(
+            {
+                "number": int(number),
+                "work": work.strip(),
+                "links": [(label.strip(), target.strip()) for label, target in links],
+                "plain_link": "" if links else link_cell.strip(),
+            }
+        )
+    return people
+
+
+def render_acknowledgement_link(label: str, target: str) -> str:
+    parsed = urlparse(target)
+    if parsed.scheme:
+        if parsed.scheme != "https":
+            return escape(label)
+        href = target
+    else:
+        normalized = target.lstrip("./")
+        if normalized.startswith(("evidence/", "non-startup-tech/")):
+            return ""
+        href = f"{REPOSITORY_URL}/blob/main/{quote(normalized, safe='/.#')}"
+    return (
+        f'<a href="{escape(href)}" target="_blank" rel="noopener noreferrer">'
+        f'{escape(label)} ↗</a>'
+    )
+
+
+def render_acknowledgements(people: list[dict]) -> str:
+    navigation = "".join(
+        f'<li><a href="#assistant-{index}">{escape(person["name"])}</a></li>'
+        for index, person in enumerate(people, start=1)
+    )
+    sections = []
+    for index, person in enumerate(people, start=1):
+        metadata = "".join(
+            f'<div><dt>{escape(label)}</dt><dd>{escape(value)}</dd></div>'
+            for label, value in person["metadata"]
+        )
+        works = []
+        for item in person["works"]:
+            links = "".join(
+                render_acknowledgement_link(label, target) for label, target in item["links"]
+            )
+            link_html = links or escape(item["plain_link"])
+            works.append(
+                f'<li value="{item["number"]}"><p class="ack-work">{escape(item["work"])}</p>'
+                f'<div class="ack-links">{link_html}</div></li>'
+            )
+        sections.append(
+            f'''<section class="ack-person" id="assistant-{index}">
+  <div class="ack-person-head">
+    <p class="kicker">Assistant / {index:02d}</p>
+    <h2>{escape(person["name"])}</h2>
+    <p>{escape(person["description"])}</p>
+    <dl class="ack-meta">{metadata}</dl>
+  </div>
+  <ol class="ack-work-list">{''.join(works)}</ol>
+</section>'''
+        )
+
+    if not sections:
+        sections.append('<p class="empty-state">README中暂无可公开展示的鸣谢记录。</p>')
+    return "\n".join(
+        (
+            page_head("特别鸣谢", "idea-tree项目AI助手及其公开工作记录。"),
+            page_header(detail=True),
+            f'''<main id="main-content" class="shell acknowledgements-layout">
+  <aside class="acknowledgements-aside">
+    <p class="kicker">Acknowledgements / project memory</p>
+    <h1>特别鸣谢</h1>
+    <p class="detail-lede">记录每一位AI助手在项目中的工作，也记录人类审核、接续与协作留下的轨迹。</p>
+    <nav class="ack-nav" aria-label="鸣谢名单"><ol>{navigation}</ol></nav>
+    <p class="ack-source">本页由README“特别鸣谢”章节生成；私人证据附件、储备区及备份材料不在此发布。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/blob/main/README.md#特别鸣谢" target="_blank" rel="noopener noreferrer">查看README原始记录 ↗</a>
+  </aside>
+  <div class="acknowledgements-content">{''.join(sections)}</div>
+</main>''',
+            page_footer(),
+        )
+    )
+
+
 def render_index(records: list[tuple[Path, dict]]) -> str:
     records = sorted(
         records,
@@ -167,7 +312,20 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         archive = text(data.get("档案类型"))
         expiry = text(data.get("死因保质期"))
         one_line = text(data.get("一句话"))
-        search = " ".join((title, node_id, domain, subdomain, " ".join(types), status, archive, one_line))
+        deaths = [death for death in data.get("死法", []) if isinstance(death, dict)]
+        first_reasoning = text(deaths[0].get("推理") or deaths[0].get("分析")) if deaths else ""
+        parts = [text(part) for part in data.get("可拆零件", []) or []]
+        search = " ".join(
+            (title, node_id, domain, subdomain, " ".join(types), status, archive, one_line, first_reasoning, " ".join(parts))
+        )
+        reasoning_html = (
+            f'<p class="record-reasoning"><strong>第一条推理／分析</strong>{escape(first_reasoning)}</p>'
+            if first_reasoning else ""
+        )
+        parts_html = (
+            f'<p class="record-parts"><strong>可拆零件</strong>{escape("、".join(parts))}</p>'
+            if parts else ""
+        )
         rows.append(
             f"""<article class="record" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
   <div class="record-main">
@@ -177,12 +335,14 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     </div>
     <div class="record-domain">{escape(domain)}<br><span class="record-id">{escape(subdomain)}</span></div>
     <div class="record-deaths">{escape("、".join(types))}</div>
-    <div class="record-status"><span class="status-tag archive-tag">{escape(archive)}</span><span class="status-tag revival-tag {revival_class(status)}">{escape(status)}</span></div>
+    <div class="record-status"><span class="archive-status">{archive_term(archive)}</span><span class="status-tag revival-tag {revival_class(status)}">{escape(status)}</span></div>
     <div class="record-expiry">{escape(expiry)}</div>
   </div>
-  <details>
-    <summary>快速查看</summary>
+  <details class="record-preview">
+    <summary>快速查看：一句话、推理与零件</summary>
     <p class="record-summary">{escape(one_line)}</p>
+    {reasoning_html}
+    {parts_html}
     <div class="record-actions">
       <a href="nodes/{escape(file.stem)}.html">阅读完整档案</a>
       <a href="{REPOSITORY_URL}/blob/main/nodes/{escape(file.name)}" target="_blank" rel="noopener noreferrer">原始YAML ↗</a>
@@ -199,6 +359,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
             page_header(),
             f"""<main id="main-content" class="shell index-layout">
   <aside class="intro" aria-label="项目介绍与筛选">
+    <div class="intro-overview">
     <p class="kicker">Failure archive / evidence index</p>
     <h1 class="archive-title">死法档案</h1>
     <p class="lede">死因可以被检索一万次。这里收录事前预审、真实验尸、公开证据、可拆零件与复活状态。</p>
@@ -212,7 +373,8 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     <div class="revival-stats" aria-label="复活状态统计">
       {''.join(f'<span>{status}<strong>{revival_counts[status]}</strong></span>' for status in REVIVAL_STATUSES)}
     </div>
-    <form class="filters" aria-label="检索节点" onsubmit="return false">
+    </div>
+    <form class="filters" id="filters" aria-label="检索节点" onsubmit="return false">
       <h2>检索档案</h2>
       <div class="field">
         <label for="search">标题、id或内容</label>
@@ -222,10 +384,12 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         <label for="domain-filter">领域</label>
         <select id="domain-filter">{select_options(domains, '全部领域')}</select>
       </div>
-      <div class="field">
-        <label for="death-filter">死法类型</label>
-        <select id="death-filter">{select_options(present_deaths, '全部死法')}</select>
-      </div>
+      <fieldset class="field death-filter-group">
+        <legend>死法类型（可多选）</legend>
+        <div class="death-filter-options">
+          {''.join(f'<label class="check-option"><input type="checkbox" name="death-filter" value="{escape(item)}"><span>{escape(item)}</span></label>' for item in present_deaths)}
+        </div>
+      </fieldset>
       <div class="field">
         <label for="status-filter">复活状态</label>
         <select id="status-filter">{select_options(list(REVIVAL_STATUSES), '全部状态')}</select>
@@ -235,16 +399,19 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         <select id="archive-filter">{select_options(list(ARCHIVE_TYPES), '全部类型')}</select>
       </div>
       <button class="reset-button" id="reset-filters" type="button" disabled>清除筛选</button>
+      <a class="mobile-filter-link" href="#catalog-title">返回节点列表 ↑</a>
     </form>
     <section class="distribution" aria-labelledby="distribution-title">
       <h2 id="distribution-title">死法条目分布</h2>
       {''.join(distribution)}
     </section>
+    <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
     <div class="catalog-head">
       <h2 id="catalog-title">节点索引</h2>
       <p class="result-count" id="result-count" aria-live="polite">显示 {len(records)} / {len(records)} 个节点</p>
+      <a class="mobile-filter-link" href="#filters">筛选档案 ↓</a>
     </div>
     <div class="record-labels" aria-hidden="true"><span>节点／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
     {''.join(rows)}
@@ -257,7 +424,13 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     )
 
 
-def render_detail(file: Path, data: dict, id_to_file: dict[str, Path]) -> str:
+def render_detail(
+    file: Path,
+    data: dict,
+    id_to_file: dict[str, Path],
+    id_to_title: dict[str, str] | None = None,
+) -> str:
+    id_to_title = id_to_title or {}
     node_id = text(data.get("id", file.stem))
     title = text(data.get("标题", node_id))
     one_line = text(data.get("一句话"))
@@ -297,19 +470,22 @@ def render_detail(file: Path, data: dict, id_to_file: dict[str, Path]) -> str:
         for field in ("案例", "备注"):
             if death.get(field):
                 optional_sections.append(f"<h4>{field}</h4><p>{escape(death.get(field))}</p>")
+        open_attribute = " open" if index <= 2 else ""
         deaths_html.append(
-            f"""<article class="death">
-  <div class="death-head">
-    <h3>死法{index} · {escape(death.get('类型'))}</h3>
+            f"""<details class="death" id="death-{index}"{open_attribute}>
+  <summary class="death-head">
+    <span class="death-heading">死法{index} · {escape(death.get('类型'))}</span>
     <span class="confidence">置信度：{escape(death.get('置信度'))}</span>
+  </summary>
+  <div class="death-body">
+    <h4>证据</h4>
+    <p>{escape(death.get('证据'))}</p>
+    <h4>推理／分析</h4>
+    <p>{escape(reasoning)}</p>
+    {''.join(optional_sections)}
+    {links_html}
   </div>
-  <h4>证据</h4>
-  <p>{escape(death.get('证据'))}</p>
-  <h4>推理／分析</h4>
-  <p>{escape(reasoning)}</p>
-  {''.join(optional_sections)}
-  {links_html}
-</article>"""
+</details>"""
         )
 
     parts = data.get("可拆零件", []) or []
@@ -320,10 +496,11 @@ def render_detail(file: Path, data: dict, id_to_file: dict[str, Path]) -> str:
             continue
         target = text(relation.get("节点"))
         target_file = id_to_file.get(target)
+        target_title = id_to_title.get(target, target)
         if target_file:
-            target_html = f'<a href="{escape(target_file.stem)}.html">{escape(target)}</a>'
+            target_html = f'<a href="{escape(target_file.stem)}.html">{escape(target_title)}</a>'
         else:
-            target_html = escape(target)
+            target_html = escape(target_title)
         note = relation.get("说明")
         note_html = f'<p class="relation-note">{escape(note)}</p>' if note else ""
         relations_html.append(
@@ -360,15 +537,22 @@ def render_detail(file: Path, data: dict, id_to_file: dict[str, Path]) -> str:
   </aside>
   <div class="detail-content">
     <section class="content-section">
-      <h2>死因与证据</h2>
-      <p class="notice">置信度表示当前证据与推理的可靠程度，不是失败概率。预审不得理解为已经发生的失败。</p>
+      <div class="section-heading-row">
+        <h2>死因与证据</h2>
+        <div class="death-actions" id="death-actions" hidden>
+          <button type="button" id="expand-deaths">全部展开</button>
+          <button type="button" id="collapse-deaths">全部收起</button>
+        </div>
+      </div>
+      <p class="notice">置信度表示当前证据与推理的可靠程度，不是失败概率。预审不得理解为已经发生的失败。启用脚本时长死法默认收起，可逐条展开。</p>
       {''.join(deaths_html)}
     </section>
     <section class="content-section"><h2>可拆零件</h2><ul class="parts-list">{parts_html}</ul></section>
     {''.join(extra_sections)}
     {f'<section class="content-section"><h2>相关节点</h2><ul class="relations-list">{"".join(relations_html)}</ul></section>' if relations_html else ''}
   </div>
-</main>""",
+</main>
+<script src="../assets/site.js" defer></script>""",
             page_footer("../"),
         )
     )
@@ -406,6 +590,8 @@ def build_site(root: Path, output: Path) -> int:
         raise ValueError("输出目录不得是仓库根目录或其上级目录")
     records = load_nodes(root)
     id_to_file = {text(data.get("id", file.stem)): file for file, data in records}
+    id_to_title = {text(data.get("id", file.stem)): text(data.get("标题", file.stem)) for file, data in records}
+    acknowledgements = parse_acknowledgements(root)
     assets = root / "site" / "assets"
     if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
         raise ValueError("site/assets/ 缺少 style.css 或 site.js")
@@ -417,9 +603,12 @@ def build_site(root: Path, output: Path) -> int:
     (output / "assets").mkdir()
 
     (output / "index.html").write_text(render_index(records), encoding="utf-8")
+    (output / "acknowledgements.html").write_text(
+        render_acknowledgements(acknowledgements), encoding="utf-8"
+    )
     for file, data in records:
         (output / "nodes" / f"{file.stem}.html").write_text(
-            render_detail(file, data, id_to_file), encoding="utf-8"
+            render_detail(file, data, id_to_file, id_to_title), encoding="utf-8"
         )
     (output / "data" / "nodes.json").write_text(
         json.dumps(public_node_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",

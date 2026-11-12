@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "nodes/**"
+      - "README.md"
       - "scripts/generate_site.py"
       - "site/**"
       - "tests/test_generate_site.py"
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - "nodes/**"
+      - "README.md"
       - "scripts/generate_site.py"
       - "site/**"
       - "tests/test_generate_site.py"

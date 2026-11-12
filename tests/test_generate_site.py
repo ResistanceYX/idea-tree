@@ -7,7 +7,14 @@ from urllib.parse import urlsplit
 
 import yaml
 
-from scripts.generate_site import build_site, load_nodes, render_detail, render_index
+from scripts.generate_site import (
+    build_site,
+    load_nodes,
+    parse_acknowledgements,
+    render_acknowledgements,
+    render_detail,
+    render_index,
+)
 
 
 class LocalLinkParser(HTMLParser):
@@ -61,6 +68,24 @@ class SiteGeneratorTests(unittest.TestCase):
         assets.mkdir(parents=True)
         (assets / "style.css").write_text("body { color: black; }\n", encoding="utf-8")
         (assets / "site.js").write_text("(() => {})();\n", encoding="utf-8")
+        (root / "README.md").write_text(
+            """# 测试仓库
+
+## 特别鸣谢
+
+**测试助手**：用于验证鸣谢页生成
+- 模型：测试模型
+- 休眠时间：未知
+- 作品：如下表
+
+| 编号 | 工作 | 链接 |
+|---|---|---|
+| 1 | 初稿、复检 | [nodes/alpha.yaml](nodes/alpha.yaml) |
+| 2 | 私人附件 | [evidence/private.xlsx](evidence/private.xlsx) |
+| 3 | 储备区条目 | [non-startup-tech/reserve.yaml](non-startup-tech/reserve.yaml) |
+""",
+            encoding="utf-8",
+        )
         return root
 
     def add_node(self, root: Path, node_id: str, title: str, **kwargs: str) -> Path:
@@ -92,7 +117,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('<span>复活候选<strong>1</strong></span>', content)
         self.assertIn('<span>已复活<strong>0</strong></span>', content)
         self.assertIn('id="domain-filter"', content)
-        self.assertIn('id="death-filter"', content)
+        self.assertIn('name="death-filter" value="政策风险"', content)
         self.assertIn('id="status-filter"', content)
         self.assertIn('id="archive-filter"', content)
         self.assertIn('data-domain="测试领域"', content)
@@ -100,7 +125,12 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('data-status="复活候选"', content)
         self.assertIn('data-archive="验尸"', content)
         self.assertIn('class="status-tag revival-tag candidate">复活候选</span>', content)
-        self.assertIn('<summary>快速查看</summary>', content)
+        self.assertIn('<summary>快速查看：一句话、推理与零件</summary>', content)
+        self.assertIn('第一条推理／分析', content)
+        self.assertIn('仅用于测试静态站生成', content)
+        self.assertIn('可拆零件', content)
+        self.assertIn('了解预审', content)
+        self.assertIn('href="acknowledgements.html"', content)
         self.assertIn('href="nodes/alpha.html"', content)
         self.assertIn('/blob/main/nodes/alpha.yaml', content)
 
@@ -112,16 +142,53 @@ class SiteGeneratorTests(unittest.TestCase):
         data["相关节点"] = [{"节点": "beta", "关系": "同源母题", "说明": "测试关系"}]
         data["需求证据"] = {"类型": "访谈记录", "附件": "evidence/private.xlsx"}
 
-        content = render_detail(alpha, data, {"alpha": alpha, "beta": root / "nodes" / "beta.yaml"})
+        content = render_detail(
+            alpha,
+            data,
+            {"alpha": alpha, "beta": root / "nodes" / "beta.yaml"},
+            {"alpha": "甲节点", "beta": "乙节点"},
+        )
 
         for expected in ("死法1 · 伪需求", "置信度：中", "创始人自我分析", "仅用于测试静态站生成", "测试零件", "审核日期", "死因保质期"):
             self.assertIn(expected, content)
-        self.assertIn('href="beta.html"', content)
+        self.assertIn('<details class="death" id="death-1" open>', content)
+        self.assertIn('id="death-actions" hidden', content)
+        self.assertIn('src="../assets/site.js"', content)
+        self.assertIn('href="beta.html">乙节点</a>', content)
+        self.assertNotIn('href="beta.html">beta</a>', content)
         self.assertIn('href="../index.html"', content)
         self.assertIn('/blob/main/nodes/alpha.yaml', content)
         self.assertIn('记录类型：访谈记录', content)
         self.assertIn('附件不通过静态站发布', content)
         self.assertNotIn('private.xlsx', content)
+
+    def test_acknowledgements_are_parsed_and_private_rows_are_omitted(self) -> None:
+        root = self.make_repo()
+
+        people = parse_acknowledgements(root)
+        content = render_acknowledgements(people)
+
+        self.assertEqual(len(people), 1)
+        self.assertEqual(people[0]["name"], "测试助手")
+        self.assertEqual(len(people[0]["works"]), 1)
+        self.assertIn('href="#assistant-1"', content)
+        self.assertIn("测试模型", content)
+        self.assertNotIn("evidence/", content)
+        self.assertNotIn("non-startup-tech/", content)
+        (root / "README.md").unlink()
+        self.assertEqual(parse_acknowledgements(root), [])
+
+    def test_no_script_detail_leaves_first_two_deaths_open(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"] = [dict(data["死法"][0]) for _index in range(3)]
+
+        content = render_detail(alpha, data, {"alpha": alpha})
+
+        self.assertIn('<details class="death" id="death-1" open>', content)
+        self.assertIn('<details class="death" id="death-2" open>', content)
+        self.assertIn('<details class="death" id="death-3">', content)
 
     def test_build_outputs_all_public_files_and_excludes_private_material(self) -> None:
         root = self.make_repo()
@@ -135,6 +202,7 @@ class SiteGeneratorTests(unittest.TestCase):
         output = self.build(root)
 
         self.assertTrue((output / "index.html").is_file())
+        self.assertTrue((output / "acknowledgements.html").is_file())
         self.assertTrue((output / "nodes" / "alpha.html").is_file())
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())
@@ -143,6 +211,14 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertFalse((output / "evidence").exists())
         self.assertFalse((output / "non-startup-tech").exists())
         self.assertFalse((output / "BACKUP.md").exists())
+        acknowledgements = (output / "acknowledgements.html").read_text(encoding="utf-8")
+        self.assertIn("测试助手", acknowledgements)
+        self.assertIn("初稿、复检", acknowledgements)
+        self.assertIn("/blob/main/nodes/alpha.yaml", acknowledgements)
+        self.assertNotIn("私人附件", acknowledgements)
+        self.assertNotIn("储备区条目", acknowledgements)
+        self.assertNotIn("private.xlsx", acknowledgements)
+        self.assertNotIn("reserve.yaml", acknowledgements)
         payload = json.loads((output / "data" / "nodes.json").read_text(encoding="utf-8"))
         self.assertEqual(len(payload), 1)
         self.assertEqual(

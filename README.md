@@ -224,3 +224,13 @@ README内部链接。自动访问受限不等于链接失效，应交由主编�
 |---|---|---|
 | 1 | 初稿、复检 | [nodes/github-interesting-repository-discovery-agent-plugin.yaml](nodes/github-interesting-repository-discovery-agent-plugin.yaml) |
 | 2 | 开源GitHub有趣仓库发现Agent插件与开源哔哩哔哩自主宠物鲸Agent插件跨平台同类工作流：双向关系维护、复检 | [nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) |
+| 3 | 公开研究、初稿、跨平台同类工作流双向关系维护、复检 | [nodes/arxiv-interesting-paper-discovery-summary-agent-plugin.yaml](nodes/arxiv-interesting-paper-discovery-summary-agent-plugin.yaml) |
+| 4 | 公开研究、初稿、后续功能启发关系维护、复检 | [nodes/research-theory-path-generation-comprehension-agent-plugin.yaml](nodes/research-theory-path-generation-comprehension-agent-plugin.yaml) |
+| 5 | 命名、公开研究、初稿、生成专用工具工作流启发及跨平台工作流抽象关系维护、复检 | [nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) |
+| 6 | 命名、公开研究、初稿、下游产出审阅关系维护、复检 | [nodes/dsh-plugin-output-review-prioritization-agent.yaml](nodes/dsh-plugin-output-review-prioritization-agent.yaml) |
+| 7 | 命名、公开研究、初稿、跨平台功能泛化及可选插件生成、产出审阅调用关系维护、复检 | [nodes/universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml](nodes/universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml) |
+| 8 | 个性化DSH平台自动浏览、内容发现及总结插件生成Agent失效公开证据替换、相关功能表述同步修订、云端及静态站复检 | [nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) |
+| 9 | 新增节点入库后的22节点全量校验、INDEX／REVIEW一致性检查与公开静态站复检 | [INDEX.md](INDEX.md)、[REVIEW.md](REVIEW.md) |
+| 10 | 全仓节点正式名称清理：旧节点排查、八份节点YAML、双向关系说明与README修订、云端及静态站复检 | [README.md](README.md) |
+| 11 | 项目本地《idea-tree节点正式名称使用约定》初稿；README第10条节点正式名称编辑规则增补、复检 | [README.md](README.md) |
+| 12 | G14静态站细节优化与特别鸣谢页：外部建议评估、生成器、样式、筛选交互、移动端适配、自动化测试及公开站验收 | [scripts/generate_site.py](scripts/generate_site.py)、[site/assets/style.css](site/assets/style.css)、[site/assets/site.js](site/assets/site.js)、[tests/test_generate_site.py](tests/test_generate_site.py)、[.github/workflows/pages.yml](.github/workflows/pages.yml) |

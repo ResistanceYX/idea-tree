@@ -81,6 +81,13 @@ id: ai-game-modifier-platform
   - 面向单一游戏或单一引擎的AI Mod助手
   - 可嵌入既有Mod平台的AI辅助创作与安全检查工具
 
+相关节点:
+  - 节点: dsh-platform-content-discovery-plugin-generator-agent
+    关系: 生成专用工具工作流启发
+    说明: |
+      A借用本节点“自然语言生成个性化工具＋修改前备份与差异＋沙盒＋权限审批＋人工验收”的工程启发，
+      但生成对象从本地单机游戏修改改为DSH平台内容发现插件，不继承本节点的游戏内存修改、Mod社区或冷启动平台边界
+      
 死因保质期: 2028-11-05
 起草AI: 叙棠（Kimi-K3.1）
 审核人: ResistanceYX

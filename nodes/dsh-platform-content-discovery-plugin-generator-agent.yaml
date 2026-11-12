@@ -16,7 +16,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       官方插件教程给出了TypeScript插件、工具注册、组合包manifest、profile安装与配置检查路径；
       NanmiCoder/dsh-agent-teams附带执行型dsh-plugin-development Skill，覆盖插件形态、bundle／profile契约、工具、持久化、构建、分发和真实组合验证；
       Microsoft Playwright MCP可通过结构化accessibility snapshots导航、点击、输入和读取网页，并提供持久或隔离浏览器profile及测试断言；
-      zoahdev/dsh-plugin-doctor已把manifest、构建、打包、全新DSH_HOME安装和合成配置检查串成Agent可调用工具
+      PerryLink/dsh-test-drive已把一次性DSH_HOME中的安装、bundle patch核对、headless启动、可选能力断言、卸载和清理串成Agent可调用流水线
     推理: |
       一，若旧判断是“缺少让编程Agent参考既有插件、生成一个新DSH插件并做基础验收的工程条件”，这一条件已经翻案。
           宿主能够读写代码和执行命令，官方文档给出插件契约，执行型Skill提供开发步骤，浏览器工具与隔离安装检查提供验证零件；
@@ -32,7 +32,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       - https://deepseek-harness.github.io/deepseek-harness/develop/basic/
       - https://github.com/NanmiCoder/dsh-agent-teams/blob/main/skills/dsh-plugin-development/SKILL.md
       - https://github.com/microsoft/playwright-mcp
-      - https://github.com/zoahdev/dsh-plugin-doctor
+      - https://github.com/PerryLink/dsh-test-drive
     置信度: 高
 
   - 类型: 伪需求
@@ -62,7 +62,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
     证据: |
       Playwright MCP官方比较有状态MCP与CLI＋SKILLS路线，指出后者对高吞吐编程Agent更节省token，
       而持续浏览器上下文和大型accessibility trees会与代码库、测试和推理争夺上下文；
-      DSH仍处于快速迭代的开发者预览阶段，dsh-plugin-doctor把构建、打包、全新profile安装与配置断言分开，
+      DSH仍处于快速迭代的开发者预览阶段，dsh-test-drive把安装、配置、启动、能力断言、卸载与清理分段记录，
       dsh-plugin-development Skill也要求按目标版本重新核实接口并做真实组合验证
     推理: |
       一，全成本不是“生成一份TypeScript文件”的模型报价，而是“需求澄清＋现有插件与官方文档取证＋页面结构探索＋代码与测试生成＋
@@ -79,7 +79,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
     证据链接:
       - https://github.com/microsoft/playwright-mcp
       - https://github.com/deepseek-ai/deepseek-harness
-      - https://github.com/zoahdev/dsh-plugin-doctor
+      - https://github.com/PerryLink/dsh-test-drive
       - https://github.com/NanmiCoder/dsh-agent-teams/blob/main/skills/dsh-plugin-development/SKILL.md
     置信度: 中
 
@@ -111,7 +111,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       DSH官方安全说明明确其实验性开发者预览软件尚未接受安全审计，第三方插件和开放的网络、进程、凭据与文件访问可能造成非预期影响；
       官方安装文档要求把构建授权视为在Agent沙箱外执行包代码；
       Playwright MCP说明持久profile会保存登录信息，allowedOrigins、blockedOrigins不是完整安全边界且不能覆盖重定向，
-      secrets替换和URL参数脱敏只是便利措施；dsh-plugin-doctor也强调“能加载”不等于“能用”
+      secrets替换和URL参数脱敏只是便利措施；dsh-test-drive也把干净启动与具名能力真实调用分开，未验证时不记成pass
     推理: |
       一，生成插件的风险高于生成一篇摘要。它可能包含依赖、安装脚本、文件与网络访问、长期账号会话和定时任务，
           用户需要信任的不只是代码能构建，还包括生成过程没有引入恶意依赖、隐藏权限、凭证外发或不可回滚修改；
@@ -127,7 +127,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       - https://github.com/deepseek-ai/deepseek-harness/blob/master/SAFETY.zh.md
       - https://deepseek-harness.github.io/deepseek-harness/develop/basic/publish
       - https://github.com/microsoft/playwright-mcp
-      - https://github.com/zoahdev/dsh-plugin-doctor
+      - https://github.com/PerryLink/dsh-test-drive
     置信度: 高
 
   - 类型: 执行人限制
@@ -135,7 +135,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       DSH官方明确其会快速迭代并发生兼容性破坏变化；dsh-plugin-development Skill提醒历史模板不代表当前Harness API，
       独立使用时必须按目标精确tag与npm产物重新核实，并从真实组合和用户安装路径验证；
       Playwright MCP提供隔离profile、已有浏览器连接和测试断言，但并行客户端需要隔离profile或不同用户目录；
-      dsh-plugin-doctor列出依赖遮蔽、构建产物缺失、Node／pnpm／端口和平台启动差异等实际故障类别
+      dsh-test-drive公开列出dsh CLI与pnpm定位、网络、模型凭据、Desktop不支持作为测试宿主、临时环境清理等实际运行约束
     推理: |
       一，实施者既要懂平台内容语义，也要能处理TypeScript、Cordis契约、构建依赖、浏览器定位器、账号授权、模型提示词和测试。
           让Agent代写代码可减少语法劳动，不能替代用户决定访问权限、判断内容是否有用和对公共行为负责；
@@ -151,7 +151,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
       - https://github.com/deepseek-ai/deepseek-harness
       - https://github.com/NanmiCoder/dsh-agent-teams/blob/main/skills/dsh-plugin-development/SKILL.md
       - https://github.com/microsoft/playwright-mcp
-      - https://github.com/zoahdev/dsh-plugin-doctor
+      - https://github.com/PerryLink/dsh-test-drive
     置信度: 中
 
 需求证据:
@@ -159,7 +159,7 @@ id: dsh-platform-content-discovery-plugin-generator-agent
   说明: |
     13、14、19号对应的公开实现已经分别覆盖GitHub仓库、arXiv论文和B站视频的发现、筛选、摘要或日报，
     证明“平台访问—内容发现—个性化总结”在多个平台反复出现，而不是只适用于单一网站。
-    DSH官方提供可读写工作区、运行命令和插件开发契约，dsh-plugin-development Skill、Playwright MCP及dsh-plugin-doctor进一步提供
+    DSH官方提供可读写工作区、运行命令和插件开发契约，dsh-plugin-development Skill、Playwright MCP及dsh-test-drive进一步提供
     从开发到隔离验收的实际零件，说明把重复适配工作交给Agent具有可操作的工程基础。
     这些材料支持开发者或高级个人用户需要减少插件样板、页面探索和测试劳动的场景，但不等于独立审计后的需求强度。
     当前没有足以确认用户愿意为每个平台生成新插件、生成物长期启用、跨平台复用、节省时间、付费或续费的公开数据；

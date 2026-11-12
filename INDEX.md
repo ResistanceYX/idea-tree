@@ -5,10 +5,10 @@
 
 ## 总览
 
-- 节点：19 个
-- 死法：92 条
+- 节点：22 个
+- 死法：109 条
 - 复活候选：4 个
-- 已复活：7 个
+- 已复活：10 个
 
 ## 节点索引
 
@@ -25,6 +25,8 @@
 | [开源哔哩哔哩自主宠物鲸Agent插件](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) | `bilibili-autonomous-pet-whale-agent-plugin` | 预审 | 已复活 | 人工智能 | 内容平台自主Agent与角色化个人信息筛选 | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 低 | 2026-11-11 | 2027-11-11 |
 | [云端全流程科研自动化Agent](nodes/cloud-research-automation-agent.yaml) | `cloud-research-automation-agent` | 预审 | 已复活 | 人工智能 | 科研智能体与云端研究工作流 | 钱算不平、巨头碾压、政策风险、信任成本、条件已死 | 高 | 2026-11-07 | 2027-11-07 |
 | [大肥鱼赛博墓地](nodes/dafeiyu-cyber-cemetery.yaml) | `dafeiyu-cyber-cemetery` | 预审 | 死透 | 文娱 | 网络meme | 伪需求、政策风险、季节魔咒、执行人限制 | 低 | 2026-10-26 | 2026-11-29 |
+| [个性化DSH平台自动浏览、内容发现及总结插件生成Agent](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) | `dsh-platform-content-discovery-plugin-generator-agent` | 预审 | 已复活 | 人工智能 | DSH插件生成与平台内容发现工具工程 | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 中 | 2026-11-12 | 2027-11-12 |
+| [DSH插件产出内容汇总审核与优先级排序Agent](nodes/dsh-plugin-output-review-prioritization-agent.yaml) | `dsh-plugin-output-review-prioritization-agent` | 预审 | 已复活 | 人工智能 | 跨插件内容审阅与个性化优先级编排 | 伪需求、钱算不平、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
 | [AI电子鼻（通用气味识别硬件创业）](nodes/electronic-nose-ai.yaml) | `electronic-nose-ai` | 预审 | 复活候选 | 硬科技 | 传感器、AI嗅觉 | 巨头碾压、信任成本、条件已死、执行人限制 | 高 | 2026-10-29 | 2028-01-01 |
 | [基于概率学模型的高考志愿填报服务（C端）](nodes/gaokao-zhiyuan-ai.yaml) | `gaokao-zhiyuan-ai` | 预审 | 死透 | 教育 | 高考升学，志愿填报 | 钱算不平、巨头碾压、政策风险、季节魔咒、信任成本 | 中 | 2026-10-28 | 2027-07-15 |
 | [开源GitHub有趣仓库发现Agent插件](nodes/github-interesting-repository-discovery-agent-plugin.yaml) | `github-interesting-repository-discovery-agent-plugin` | 预审 | 已复活 | 人工智能 | 开源软件发现与个人信息筛选Agent | 伪需求、钱算不平、巨头碾压、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
@@ -33,6 +35,7 @@
 | [长期伴随学习辅助AI](nodes/long-term-learning-companion-ai.yaml) | `long-term-learning-companion-ai` | 预审 | 复活候选 | 人工智能 | 长期个人记忆与智能教育 | 钱算不平、巨头碾压、政策风险、信任成本、执行人限制 | 高 | 2026-11-07 | 2027-11-07 |
 | [开源仓库AI视频生成器](nodes/oss-video-generator.yaml) | `oss-video-generator` | 预审 | 死透 | 开发者工具 | 内容生成与项目推广 | 伪需求、钱算不平、巨头碾压、执行人限制 | 低 | 2026-11-02 | 2029-11-02 |
 | [开源理论研究路径生成及记录辅助理解Agent插件](nodes/research-theory-path-generation-comprehension-agent-plugin.yaml) | `research-theory-path-generation-comprehension-agent-plugin` | 预审 | 已复活 | 人工智能 | 论文理论溯源与证据化辅助阅读Agent | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 中 | 2026-11-12 | 2027-11-12 |
+| [通用DSH跨平台自主宠物鲸插件](nodes/universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml) | `universal-dsh-cross-platform-autonomous-pet-whale-plugin` | 预审 | 已复活 | 人工智能 | 跨平台角色化Agent与子代理编排 | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 中 | 2026-11-12 | 2027-11-12 |
 
 ## 按死法类型统计
 
@@ -40,15 +43,15 @@
 
 | 死法类型 | 死法条数 | 涉及节点数 |
 |---|---:|---:|
-| 伪需求 | 8 | 8 |
-| 钱算不平 | 14 | 14 |
+| 伪需求 | 11 | 11 |
+| 钱算不平 | 17 | 17 |
 | 巨头碾压 | 14 | 14 |
-| 政策风险 | 12 | 12 |
+| 政策风险 | 14 | 14 |
 | 季节魔咒 | 2 | 2 |
 | 冷启动死锁 | 2 | 2 |
-| 信任成本 | 14 | 14 |
-| 条件已死 | 9 | 9 |
-| 执行人限制 | 14 | 14 |
+| 信任成本 | 17 | 17 |
+| 条件已死 | 12 | 12 |
+| 执行人限制 | 17 | 17 |
 | 理论证伪 | 3 | 3 |
 
 ## 按复活状态统计
@@ -57,11 +60,11 @@
 |---|---:|
 | 死透 | 8 |
 | 复活候选 | 4 |
-| 已复活 | 7 |
+| 已复活 | 10 |
 
 ## 按档案类型统计
 
 | 档案类型 | 节点数 |
 |---|---:|
-| 预审 | 18 |
+| 预审 | 21 |
 | 验尸 | 1 |

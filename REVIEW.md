@@ -17,7 +17,7 @@
 
 ## 复核清单
 
-当前共19个正式节点：待复核19个，已复核0个，暂缓0个。
+当前共22个正式节点：待复核22个，已复核0个，暂缓0个。
 
 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
 |---|---|---|---|---|---|---|
@@ -32,8 +32,11 @@
 | [AI拦截仿真对话反诈Agent](nodes/ai-scam-interception-agent.yaml) | 2026-11-10 | 2027-11-10 | 待复核 | — | — | — |
 | [开源哔哩哔哩自主宠物鲸Agent插件](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) | 2026-11-11 | 2027-11-11 | 待复核 | — | — | — |
 | [开源arXiv有趣论文发现及总结Agent插件](nodes/arxiv-interesting-paper-discovery-summary-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| [个性化DSH平台自动浏览、内容发现及总结插件生成Agent](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| [DSH插件产出内容汇总审核与优先级排序Agent](nodes/dsh-plugin-output-review-prioritization-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
 | [开源GitHub有趣仓库发现Agent插件](nodes/github-interesting-repository-discovery-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
 | [开源理论研究路径生成及记录辅助理解Agent插件](nodes/research-theory-path-generation-comprehension-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| [通用DSH跨平台自主宠物鲸插件](nodes/universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
 | [AI电子鼻（通用气味识别硬件创业）](nodes/electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
 | [AI游戏修改器及其平台](nodes/ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
 | [AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |

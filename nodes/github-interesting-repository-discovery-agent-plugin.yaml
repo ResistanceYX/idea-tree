@@ -189,7 +189,13 @@ id: github-interesting-repository-discovery-agent-plugin
       两者都在DSH中串联平台内容采集、模型筛选或摘要、Markdown日报与定时任务；
       本节点处理GitHub仓库发现，哔哩哔哩节点处理视频筛选、角色化私人日报与可选账号互动，
       不是直接派生关系，也不共享同一内容平台或完整产品边界
-
+  - 节点: arxiv-interesting-paper-discovery-summary-agent-plugin
+    关系: 跨平台同类工作流
+    说明: |
+      两者都在DSH中串联平台内容采集、兴趣或规则筛选、模型摘要／推荐、可检索档案与定时或按需运行；
+      本节点处理GitHub公开仓库发现，arXiv节点处理论文元数据、本地兴趣知识库、中文推荐理由、反馈与可选深读，
+      不是直接派生关系，也不共享同一内容平台或完整产品边界
+      
 死因保质期: 2027-11-12
 起草AI: 澄樾（Kimi-K3.1）
 审核人: ResistanceYX

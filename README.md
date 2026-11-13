@@ -250,3 +250,17 @@
 | 10 | 全仓节点正式名称清理：旧节点排查、八份节点YAML、双向关系说明与README修订、云端及静态站复检 | [README.md](README.md) |
 | 11 | 项目本地《idea-tree节点正式名称使用约定》初稿；README第10条节点正式名称编辑规则增补、复检 | [README.md](README.md) |
 | 12 | G14静态站细节优化与特别鸣谢页：外部建议评估、生成器、样式、筛选交互、移动端适配、自动化测试及公开站验收 | [scripts/generate_site.py](scripts/generate_site.py)、[site/assets/style.css](site/assets/style.css)、[site/assets/site.js](site/assets/site.js)、[tests/test_generate_site.py](tests/test_generate_site.py)、[.github/workflows/pages.yml](.github/workflows/pages.yml) |
+| 13 | 重要设施廉价无人机阵列动态防空网：非正式节点初稿、概念层风险与战略稳定边界、云端复核 | [non-startup-tech/critical-infrastructure-drone-array-air-defense.yaml](non-startup-tech/critical-infrastructure-drone-array-air-defense.yaml) |
+| 14 | 基于地天观测数据及公开资料实现的统计学估计间谍卫星识别：非正式节点公开研究、初稿、统计识别不确定性与公开资料边界、云端复核 | [non-startup-tech/open-data-statistical-spy-satellite-identification.yaml](non-startup-tech/open-data-statistical-spy-satellite-identification.yaml) |
+| 15 | G14静态站细节二次优化：外部执行清单审议、生成器、样式、交互与自动化测试修改、云端复检 | [scripts/generate_site.py](scripts/generate_site.py)、[site/assets/style.css](site/assets/style.css)、[site/assets/site.js](site/assets/site.js)、[tests/test_generate_site.py](tests/test_generate_site.py) |
+| 16 | 公开研究、初稿、人工监督与风险证据边界、复检 | [nodes/0023-listed-company-multi-source-risk-monitoring-agent.yaml](nodes/0023-listed-company-multi-source-risk-monitoring-agent.yaml) |
+| 17 | 公开研究、初稿、合法授权与人工复核边界、复检 | [nodes/0024-government-power-abuse-corruption-risk-scanning-agent.yaml](nodes/0024-government-power-abuse-corruption-risk-scanning-agent.yaml) |
+| 18 | G17正式节点永久编号方案讨论、编号与id职责分离、Issue草案 | [Issue #11](https://github.com/ResistanceYX/idea-tree/issues/11) |
+| 19 | 基于大中型无人机及无人地面载具中转实现的信号传输：非正式节点性质评估、初稿、合法授权与通信系统级边界、云端复核 | [non-startup-tech/uav-ugv-relayed-signal-transmission.yaml](non-startup-tech/uav-ugv-relayed-signal-transmission.yaml) |
+| 20 | 基于无人设备多次中转和无人设备接力运输实现的无人武器可用范围拓展：非正式节点性质评估、初稿、军事安全边界与概念层收敛、云端复核 | [non-startup-tech/unmanned-relay-weapon-range-extension.yaml](non-startup-tech/unmanned-relay-weapon-range-extension.yaml) |
+| 21 | 公开研究、源码与隐私边界复核、初稿、互补工具双向关系维护、复检 | [nodes/0025-dafeiyu-cleaner.yaml](nodes/0025-dafeiyu-cleaner.yaml)、[nodes/0016-bilibili-autonomous-pet-whale-agent-plugin.yaml](nodes/0016-bilibili-autonomous-pet-whale-agent-plugin.yaml) |
+| 22 | G14长文可读性改造：实施文档审议、推理／分析语义化展示、软换行与编号列表处理、自动化测试及25节点公开站复检 | [scripts/generate_site.py](scripts/generate_site.py)、[site/assets/style.css](site/assets/style.css)、[tests/test_generate_site.py](tests/test_generate_site.py) |
+| 23 | G17正式实施：0001—0025编号顺序、文件名与关系引用改造，README规则及链接，共享解析器、生成器、测试与工作流适配，37项测试及静态站桌面／移动端验收 | [README.md](README.md)、[scripts/node_files.py](scripts/node_files.py)、[scripts/validate.py](scripts/validate.py)、[scripts/generate_index.py](scripts/generate_index.py)、[scripts/generate_site.py](scripts/generate_site.py) |
+| 24 | G17上传故障复现与修复复核：污染标记及跨文件拼接定位、清理后逐文件差异核对、最小修复集合与干净替换包验证 | [scripts/validate.py](scripts/validate.py)、[scripts/generate_index.py](scripts/generate_index.py)、[README.md](README.md) |
+| 25 | 公开研究、验尸前提纠偏、预审＋已复活初稿与云端复检 | [nodes/0026-cellular-tablet-device.yaml](nodes/0026-cellular-tablet-device.yaml) |
+| 26 | README高质量示例评估：保留旧示例并追加0015机构部署与多源证据示例、0025开源实现与风险边界示例，链接及全量校验 | [README.md](README.md)、[nodes/0015-ai-scam-interception-agent.yaml](nodes/0015-ai-scam-interception-agent.yaml)、[nodes/0025-dafeiyu-cleaner.yaml](nodes/0025-dafeiyu-cleaner.yaml) |

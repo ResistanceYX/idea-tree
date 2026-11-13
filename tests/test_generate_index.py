@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: tests/test_generate_index.py -->
-```python
 import contextlib
 import io
 import sys
@@ -111,5 +109,3 @@ class IndexGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-```
-<!-- END FILE: tests/test_generate_index.py -->

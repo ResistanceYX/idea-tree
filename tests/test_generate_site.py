@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: tests/test_generate_site.py -->
-```python
 import json
 import re
 import tempfile
@@ -446,5 +444,3 @@ class SiteGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-```
-<!-- END FILE: tests/test_generate_site.py -->

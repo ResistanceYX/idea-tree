@@ -1,3 +1,4 @@
+编号: "0021"
 id: dsh-plugin-output-review-prioritization-agent
 标题: DSH插件产出内容汇总审核与优先级排序Agent
 一句话: |
@@ -170,27 +171,27 @@ id: dsh-plugin-output-review-prioritization-agent
   - 上游Schema升级后的兼容回归、未解析告警、历史迁移和适配器版本矩阵
 
 相关节点:
-  - 节点: github-interesting-repository-discovery-agent-plugin
+  - 节点: 0017-github-interesting-repository-discovery-agent-plugin
     关系: 下游产出审阅
     说明: |
       本节点可把开源GitHub有趣仓库发现Agent插件生成的仓库发现、中文摘要与日报作为首批已知格式输入，进行跨插件去重、来源核对和统一排序；
       开源GitHub有趣仓库发现Agent插件仍负责GitHub访问与仓库发现，本节点不代替其采集，也不要求开源GitHub有趣仓库发现Agent插件为本Agent改变原有产品边界
-  - 节点: arxiv-interesting-paper-discovery-summary-agent-plugin
+  - 节点: 0018-arxiv-interesting-paper-discovery-summary-agent-plugin
     关系: 下游产出审阅
     说明: |
       本节点可把开源arXiv有趣论文发现及总结Agent插件生成的论文推荐、中文理由与论文库作为首批已知格式输入，保留arXiv标识、版本和原文范围后进入统一审阅；
       开源arXiv有趣论文发现及总结Agent插件仍负责arXiv调研与兴趣反馈，本节点不代替其采集或深读
-  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+  - 节点: 0016-bilibili-autonomous-pet-whale-agent-plugin
     关系: 下游产出审阅
     说明: |
       本节点可把开源哔哩哔哩自主宠物鲸Agent插件生成的视频筛选结果与Markdown日报作为首批已知格式输入，保留BV号、字幕范围和推荐理由后进入统一审阅；
       开源哔哩哔哩自主宠物鲸Agent插件仍负责B站浏览与私人投递，本节点不继承其公共评论或账号互动权限
-  - 节点: universal-dsh-cross-platform-autonomous-pet-whale-plugin
+  - 节点: 0022-universal-dsh-cross-platform-autonomous-pet-whale-plugin
     关系: 可选产出审阅调用
     说明: |
       通用宠物鲸完成多个平台子代理的结果收集后，可选调用本节点进行跨源去重、分维审核和私人优先级队列；
       本节点不是通用宠物鲸的平台采集器，模型排序也不替代用户对原文、公共互动或实际行动的确认
-
+      
 死因保质期: 2027-11-12
 起草AI: 澄樾（Kimi-K3.1）
 审核人: ResistanceYX

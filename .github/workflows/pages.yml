@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: .github/workflows/pages.yml -->
+```yaml
 name: 生成并部署公开静态索引站
 
 on:
@@ -7,6 +9,7 @@ on:
       - "nodes/**"
       - "README.md"
       - "scripts/generate_site.py"
+      - "scripts/node_files.py"
       - "site/**"
       - "tests/test_generate_site.py"
       - ".github/workflows/pages.yml"
@@ -15,6 +18,7 @@ on:
       - "nodes/**"
       - "README.md"
       - "scripts/generate_site.py"
+      - "scripts/node_files.py"
       - "site/**"
       - "tests/test_generate_site.py"
       - ".github/workflows/pages.yml"
@@ -74,3 +78,5 @@ jobs:
       - name: 部署站点
         id: deployment
         uses: actions/deploy-pages@v4
+```
+<!-- END FILE: .github/workflows/pages.yml -->

@@ -133,6 +133,12 @@ ARCHIVE_DEFINITIONS = {
     "验尸": "来自真实实施、停止、失败或转向记录，不以纯粹假设替代实际经历。",
 }
 
+REVIVAL_DEFINITIONS = {
+    "死透": "当前完整路线按现有证据判为不可行或不再成立，不等于所有可拆零件都无价值。",
+    "复活候选": "部分关键条件已翻案或存在可验证的缩围路线，仍需复核剩余风险。",
+    "已复活": "核心条件已有证据支持发生翻案，不等于商业闭环或最终效果已经确立。",
+}
+
 
 def archive_term(archive: str) -> str:
     tag = f'<span class="status-tag archive-tag">{escape(archive)}</span>'
@@ -144,6 +150,55 @@ def archive_term(archive: str) -> str:
         f'<summary aria-label="了解{escape(archive)}">?</summary>'
         f'<p>{escape(definition)}</p></details></span>'
     )
+
+
+def reasoning_preview(value: object, limit: int = 240) -> str:
+    """Keep the first complete sentence, shortening only an overlong sentence."""
+    source = re.sub(r"[ \t]*\n[ \t]*", "", text(value).strip())
+    if not source:
+        return ""
+    sentence_end = re.search(r"[。！？!?](?:[”’\"'])?", source)
+    first_sentence = source[:sentence_end.end()] if sentence_end else source
+    if len(first_sentence) <= limit:
+        return first_sentence
+
+    window = first_sentence[:limit]
+    boundaries = [
+        match.end()
+        for match in re.finditer(r"[；;]", window)
+        if match.end() >= 180
+    ]
+    if not boundaries:
+        boundaries = [
+            match.end()
+            for match in re.finditer(r"[，：,:]", window)
+            if match.end() >= 180
+        ]
+    if boundaries:
+        return first_sentence[:boundaries[-1] - 1].rstrip() + "…"
+
+    cut = limit
+    if (
+        cut < len(first_sentence)
+        and re.match(r"[A-Za-z0-9]", first_sentence[cut - 1])
+        and re.match(r"[A-Za-z0-9]", first_sentence[cut])
+    ):
+        word_boundary = window.rfind(" ", 180)
+        if word_boundary >= 180:
+            cut = word_boundary
+    return first_sentence[:cut].rstrip() + "…"
+
+
+def render_status_guide() -> str:
+    definitions = (*ARCHIVE_DEFINITIONS.items(), *REVIVAL_DEFINITIONS.items())
+    items = "".join(
+        f'<div><dt>{escape(term)}</dt><dd>{escape(definition)}</dd></div>'
+        for term, definition in definitions
+    )
+    return f'''<details class="status-guide">
+      <summary>状态说明</summary>
+      <dl class="status-guide-definitions">{items}</dl>
+    </details>'''
 
 
 def parse_acknowledgements(root: Path) -> list[dict]:
@@ -319,11 +374,14 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
             (title, node_id, domain, subdomain, " ".join(types), status, archive, one_line, first_reasoning, " ".join(parts))
         )
         reasoning_html = (
-            f'<p class="record-reasoning"><strong>第一条推理／分析</strong>{escape(first_reasoning)}</p>'
+            f'<div class="record-reasoning"><strong>第一条推理／分析</strong>'
+            f'<p>{escape(reasoning_preview(first_reasoning))}</p></div>'
             if first_reasoning else ""
         )
+        part_items = "".join(f"<li>{escape(part)}</li>" for part in parts[:3])
         parts_html = (
-            f'<p class="record-parts"><strong>可拆零件</strong>{escape("、".join(parts))}</p>'
+            f'<div class="record-parts"><strong>可拆零件</strong><ul>{part_items}</ul>'
+            f'<p class="record-parts-count">共 {len(parts)} 个零件，完整清单见完整档案。</p></div>'
             if parts else ""
         )
         rows.append(
@@ -375,7 +433,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     </div>
     </div>
     <form class="filters" id="filters" aria-label="检索节点" onsubmit="return false">
-      <h2>检索档案</h2>
+      <h2 id="filters-title" tabindex="-1">检索档案</h2>
       <div class="field">
         <label for="search">标题、id或内容</label>
         <input id="search" type="search" placeholder="例如：巨头碾压、AI、开源" autocomplete="off">
@@ -385,7 +443,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         <select id="domain-filter">{select_options(domains, '全部领域')}</select>
       </div>
       <fieldset class="field death-filter-group">
-        <legend>死法类型（可多选）</legend>
+        <legend>死法类型（多选，满足任一）</legend>
         <div class="death-filter-options">
           {''.join(f'<label class="check-option"><input type="checkbox" name="death-filter" value="{escape(item)}"><span>{escape(item)}</span></label>' for item in present_deaths)}
         </div>
@@ -399,7 +457,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         <select id="archive-filter">{select_options(list(ARCHIVE_TYPES), '全部类型')}</select>
       </div>
       <button class="reset-button" id="reset-filters" type="button" disabled>清除筛选</button>
-      <a class="mobile-filter-link" href="#catalog-title">返回节点列表 ↑</a>
+      <a class="mobile-filter-link" id="filter-results-link" href="#catalog-title" aria-label="查看 {len(records)} 个筛选结果并返回节点列表">查看 {len(records)} 个结果 ↑</a>
     </form>
     <section class="distribution" aria-labelledby="distribution-title">
       <h2 id="distribution-title">死法条目分布</h2>
@@ -409,10 +467,11 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
     <div class="catalog-head">
-      <h2 id="catalog-title">节点索引</h2>
+      <h2 id="catalog-title" tabindex="-1">节点索引</h2>
       <p class="result-count" id="result-count" aria-live="polite">显示 {len(records)} / {len(records)} 个节点</p>
-      <a class="mobile-filter-link" href="#filters">筛选档案 ↓</a>
+      <a class="mobile-filter-link" href="#filters-title">筛选档案 ↓</a>
     </div>
+    {render_status_guide()}
     <div class="record-labels" aria-hidden="true"><span>节点／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
     {''.join(rows)}
     <div class="empty-state" id="empty-state" hidden><p>没有匹配的节点。请减少筛选条件，或清除后重新检索。</p></div>
@@ -544,7 +603,7 @@ def render_detail(
           <button type="button" id="collapse-deaths">全部收起</button>
         </div>
       </div>
-      <p class="notice">置信度表示当前证据与推理的可靠程度，不是失败概率。预审不得理解为已经发生的失败。启用脚本时长死法默认收起，可逐条展开。</p>
+      <p class="notice">置信度表示当前证据与推理的可靠程度，不是失败概率。预审不得理解为已经发生的失败。启用脚本时，各死法默认收起，可逐条展开；通过死法锚点打开时会自动展开目标。</p>
       {''.join(deaths_html)}
     </section>
     <section class="content-section"><h2>可拆零件</h2><ul class="parts-list">{parts_html}</ul></section>

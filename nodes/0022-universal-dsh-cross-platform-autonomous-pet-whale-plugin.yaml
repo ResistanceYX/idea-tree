@@ -1,3 +1,4 @@
+编号: "0022"
 id: universal-dsh-cross-platform-autonomous-pet-whale-plugin
 标题: 通用DSH跨平台自主宠物鲸插件
 一句话: |
@@ -201,23 +202,23 @@ id: universal-dsh-cross-platform-autonomous-pet-whale-plugin
   - 宿主—编排插件—平台插件—模型—浏览器版本矩阵及故障注入、权限和恢复回归测试包
 
 相关节点:
-  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+  - 节点: 0016-bilibili-autonomous-pet-whale-agent-plugin
     关系: 跨平台功能泛化
     说明: |
       本节点把开源哔哩哔哩自主宠物鲸Agent插件的“角色化自主刷站＋内容筛选＋私人日报＋可选互动”泛化为统一角色与任务入口，
       通过平台专用插件或子代理处理不同平台；开源哔哩哔哩自主宠物鲸Agent插件提供单平台真实实现与默认只读、公共谨慎的边界，
       本节点不因此宣称所有平台适配器或公共互动已经实现
-  - 节点: dsh-platform-content-discovery-plugin-generator-agent
+  - 节点: 0020-dsh-platform-content-discovery-plugin-generator-agent
     关系: 可选插件生成调用
     说明: |
       缺少目标平台适配器时，本节点可请求个性化DSH平台自动浏览、内容发现及总结插件生成Agent生成候选插件，也可由人工或Agent另行开发；
       生成结果须经过独立代码审核、隔离测试和人工批准后才能安装启用，本节点不因具备调用入口就获得自动扩权限能力
-  - 节点: dsh-plugin-output-review-prioritization-agent
+  - 节点: 0021-dsh-plugin-output-review-prioritization-agent
     关系: 可选产出审阅调用
     说明: |
       多平台结果回收后，本节点可选调用DSH插件产出内容汇总审核与优先级排序Agent进行跨源去重、分维审核和私人优先级队列；
       DSH插件产出内容汇总审核与优先级排序Agent只处理下游产出，不代替平台子代理浏览，也不以其模型分数决定公共互动或实际行动
-
+      
 死因保质期: 2027-11-12
 起草AI: 澄樾（Kimi-K3.1）
 审核人: ResistanceYX

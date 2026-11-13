@@ -15,6 +15,7 @@
     const count = document.querySelector('#result-count');
     const empty = document.querySelector('#empty-state');
     const reset = document.querySelector('#reset-filters');
+    const resultLink = document.querySelector('#filter-results-link');
 
     function applyFilters() {
       const query = normalized(search.value);
@@ -37,6 +38,10 @@
       const active = Boolean(query) || selectedDeaths.length > 0
         || Object.values(filters).some((filter) => filter.value);
       count.textContent = `显示 ${visible} / ${records.length} 个节点`;
+      if (resultLink) {
+        resultLink.textContent = `查看 ${visible} 个结果 ↑`;
+        resultLink.setAttribute('aria-label', `查看 ${visible} 个筛选结果并返回节点列表`);
+      }
       empty.hidden = visible !== 0;
       reset.disabled = !active;
     }
@@ -53,6 +58,19 @@
     });
   }
 
+  function initSectionJumps() {
+    document.querySelectorAll('.mobile-filter-link[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const target = document.getElementById(link.hash.slice(1));
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ block: 'start' });
+        target.focus({ preventScroll: true });
+        history.replaceState(null, '', link.hash);
+      });
+    });
+  }
+
   function initDeathSections() {
     const deaths = Array.from(document.querySelectorAll('details.death'));
     const controls = document.querySelector('#death-actions');
@@ -64,6 +82,16 @@
     function syncControls() {
       expand.disabled = deaths.every((death) => death.open);
       collapse.disabled = deaths.every((death) => !death.open);
+    }
+
+    function openDeathFromHash(scroll = false) {
+      const id = location.hash.slice(1);
+      if (!id) return;
+      const target = document.getElementById(id);
+      if (!target?.matches('details.death')) return;
+      target.open = true;
+      syncControls();
+      if (scroll) target.scrollIntoView({ block: 'start' });
     }
 
     controls.hidden = false;
@@ -79,9 +107,12 @@
       deaths.forEach((death) => { death.open = false; });
       syncControls();
     });
+    openDeathFromHash(true);
+    window.addEventListener('hashchange', () => openDeathFromHash(true));
     syncControls();
   }
 
   initFilters();
+  initSectionJumps();
   initDeathSections();
 })();

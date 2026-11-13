@@ -1,3 +1,4 @@
+编号: "0004"
 id: ai-federation-platform
 标题: AI联合平台
 一句话: 让用户挑选多个AI组成"委员会"分工协作、辩论决策，覆盖从点子到产品到销售的全流程
@@ -89,11 +90,11 @@ id: ai-federation-platform
   - “杠精Agent”红队预设Prompt包
   - 辩论规则与投票机制设计（主持人、顺序、自由三模式）
 
-相关节点: 
-  - 节点: oss-video-generator
+相关节点:
+  - 节点: 0006-oss-video-generator
     关系: 同类死因
     说明: 同属工具型 AI 应用，死因均含巨头碾压与钱算不平
-  - 节点: cloud-research-automation-agent
+  - 节点: 0013-cloud-research-automation-agent
     关系: 垂直领域参照
     说明: 科研云端Agent可作为多模型任务编排的垂直参照，但不构成母题的直接派生子题
     

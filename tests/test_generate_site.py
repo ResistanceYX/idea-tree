@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: tests/test_generate_site.py -->
+```python
 import json
 import re
 import tempfile
@@ -40,8 +42,10 @@ def node_text(
     death_type: str = "伪需求",
     status: str = "死透",
     archive: str = "预审",
+    number: str = "0001",
 ) -> str:
-    return f"""id: {node_id}
+    return f"""编号: "{number}"
+id: {node_id}
 标题: {title}
 一句话: 用于验证公开静态站的测试节点
 档案类型: {archive}
@@ -86,7 +90,7 @@ class SiteGeneratorTests(unittest.TestCase):
 
 | 编号 | 工作 | 链接 |
 |---|---|---|
-| 1 | 初稿、复检 | [nodes/alpha.yaml](nodes/alpha.yaml) |
+| 1 | 初稿、复检 | [nodes/0001-alpha.yaml](nodes/0001-alpha.yaml) |
 | 2 | 私人附件 | [evidence/private.xlsx](evidence/private.xlsx) |
 | 3 | 储备区条目 | [non-startup-tech/reserve.yaml](non-startup-tech/reserve.yaml) |
 """,
@@ -94,9 +98,10 @@ class SiteGeneratorTests(unittest.TestCase):
         )
         return root
 
-    def add_node(self, root: Path, node_id: str, title: str, **kwargs: str) -> Path:
-        file = root / "nodes" / f"{node_id}.yaml"
-        file.write_text(node_text(node_id, title, **kwargs), encoding="utf-8")
+    def add_node(self, root: Path, node_id: str, title: str, number: str | None = None, **kwargs: str) -> Path:
+        number = number or f"{len(list((root / 'nodes').glob('*.yaml'))) + 1:04d}"
+        file = root / "nodes" / f"{number}-{node_id}.yaml"
+        file.write_text(node_text(node_id, title, number=number, **kwargs), encoding="utf-8")
         return file
 
     def build(self, root: Path) -> Path:
@@ -145,7 +150,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
         self.assertIn('href="acknowledgements.html"', content)
         self.assertIn('href="nodes/alpha.html"', content)
-        self.assertIn('/blob/main/nodes/alpha.yaml', content)
+        self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
 
     def test_quick_view_uses_excerpt_and_at_most_three_parts(self) -> None:
         root = self.make_repo()
@@ -189,14 +194,14 @@ class SiteGeneratorTests(unittest.TestCase):
         alpha = self.add_node(root, "alpha", "甲节点")
         self.add_node(root, "beta", "乙节点")
         data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
-        data["相关节点"] = [{"节点": "beta", "关系": "同源母题", "说明": "测试关系"}]
+        data["相关节点"] = [{"节点": "0002-beta", "关系": "同源母题", "说明": "测试关系"}]
         data["需求证据"] = {"类型": "访谈记录", "附件": "evidence/private.xlsx"}
 
         content = render_detail(
             alpha,
             data,
-            {"alpha": alpha, "beta": root / "nodes" / "beta.yaml"},
-            {"alpha": "甲节点", "beta": "乙节点"},
+            {"0001-alpha": alpha, "0002-beta": root / "nodes" / "0002-beta.yaml"},
+            {"0001-alpha": "甲节点", "0002-beta": "乙节点"},
         )
 
         for expected in ("死法1 · 伪需求", "置信度：中", "创始人自我分析", "仅用于测试静态站生成", "测试零件", "审核日期", "死因保质期"):
@@ -208,7 +213,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('href="beta.html">乙节点</a>', content)
         self.assertNotIn('href="beta.html">beta</a>', content)
         self.assertIn('href="../index.html"', content)
-        self.assertIn('/blob/main/nodes/alpha.yaml', content)
+        self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
         self.assertIn('记录类型：访谈记录', content)
         self.assertIn('附件不通过静态站发布', content)
         self.assertNotIn('private.xlsx', content)
@@ -276,7 +281,7 @@ class SiteGeneratorTests(unittest.TestCase):
         data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
         data["死法"][0]["分析"] = "一，第一项。\n二，第二项。\n结论：两项完整保留。\n边界说明：仅用于测试。"
 
-        content = render_detail(alpha, data, {"alpha": alpha})
+        content = render_detail(alpha, data, {"0001-alpha": alpha})
 
         self.assertIn('<div class="rich-text">', content)
         self.assertIn('<ol class="argument-list">', content)
@@ -333,7 +338,7 @@ class SiteGeneratorTests(unittest.TestCase):
         data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
         data["死法"] = [dict(data["死法"][0]) for _index in range(3)]
 
-        content = render_detail(alpha, data, {"alpha": alpha})
+        content = render_detail(alpha, data, {"0001-alpha": alpha})
 
         self.assertIn('<details class="death" id="death-1" open>', content)
         self.assertIn('<details class="death" id="death-2" open>', content)
@@ -363,7 +368,7 @@ class SiteGeneratorTests(unittest.TestCase):
         acknowledgements = (output / "acknowledgements.html").read_text(encoding="utf-8")
         self.assertIn("测试助手", acknowledgements)
         self.assertIn("初稿、复检", acknowledgements)
-        self.assertIn("/blob/main/nodes/alpha.yaml", acknowledgements)
+        self.assertIn("/blob/main/nodes/0001-alpha.yaml", acknowledgements)
         self.assertNotIn("私人附件", acknowledgements)
         self.assertNotIn("储备区条目", acknowledgements)
         self.assertNotIn("private.xlsx", acknowledgements)
@@ -372,10 +377,12 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertEqual(len(payload), 1)
         self.assertEqual(
             set(payload[0]),
-            {"id", "标题", "档案类型", "复活状态", "领域", "子领域", "死法类型", "审核日期", "死因保质期", "相关节点", "页面"},
+            {"编号", "id", "标题", "档案类型", "复活状态", "领域", "子领域", "死法类型", "审核日期", "死因保质期", "相关节点", "页面"},
         )
         self.assertNotIn("证据", payload[0])
         self.assertNotIn("需求证据", payload[0])
+        self.assertEqual("0001", payload[0]["编号"])
+        self.assertEqual("nodes/alpha.html", payload[0]["页面"])
 
     def test_new_node_is_included_on_next_build(self) -> None:
         root = self.make_repo()
@@ -397,7 +404,7 @@ class SiteGeneratorTests(unittest.TestCase):
         alpha = self.add_node(root, "alpha", "甲节点")
         self.add_node(root, "beta", "乙节点")
         data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
-        data["相关节点"] = [{"节点": "beta", "关系": "同源母题"}]
+        data["相关节点"] = [{"节点": "0002-beta", "关系": "同源母题"}]
         alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
         output = self.build(root)
         first = {path.relative_to(output): path.read_bytes() for path in output.rglob("*") if path.is_file()}
@@ -439,3 +446,5 @@ class SiteGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+```
+<!-- END FILE: tests/test_generate_site.py -->

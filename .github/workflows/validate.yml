@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: .github/workflows/validate.yml -->
-```yaml
 name: 校验节点并维护索引与复核清单
 
 on:
@@ -85,5 +83,3 @@ jobs:
           git add INDEX.md REVIEW.md
           git commit -m "chore: 自动更新索引与复核清单"
           git push
-```
-<!-- END FILE: .github/workflows/validate.yml -->

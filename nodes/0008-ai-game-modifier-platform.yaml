@@ -1,3 +1,4 @@
+编号: "0008"
 id: ai-game-modifier-platform
 标题: AI游戏修改器及其平台
 一句话: 让玩家用自然语言驱动AI分析本地单机游戏并生成个性化修改或自动加载脚本，再将成品按游戏与版本上传、评价和分发，形成类似Nexus Mods的AI修改社区
@@ -82,7 +83,7 @@ id: ai-game-modifier-platform
   - 可嵌入既有Mod平台的AI辅助创作与安全检查工具
 
 相关节点:
-  - 节点: dsh-platform-content-discovery-plugin-generator-agent
+  - 节点: 0020-dsh-platform-content-discovery-plugin-generator-agent
     关系: 生成专用工具工作流启发
     说明: |
       个性化DSH平台自动浏览、内容发现及总结插件生成Agent借用本节点“自然语言生成个性化工具＋修改前备份与差异＋沙盒＋权限审批＋人工验收”的工程启发，

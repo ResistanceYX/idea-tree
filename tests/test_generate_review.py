@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: tests/test_generate_review.py -->
+```python
 import contextlib
 import io
 import sys
@@ -9,8 +11,11 @@ from unittest.mock import patch
 from scripts.generate_review import generate_review, main, render_review, review_is_current
 
 
-def node_text(node_id: str, title: str, expiry: str, reviewed: str = "2026-01-01") -> str:
-    return f"""id: {node_id}
+def node_text(
+    node_id: str, title: str, expiry: str, reviewed: str = "2026-01-01", number: str = "0001"
+) -> str:
+    return f"""编号: "{number}"
+id: {node_id}
 标题: {title}
 档案类型: 预审
 一句话: 用于验证复核清单的测试节点
@@ -43,10 +48,10 @@ class ReviewGeneratorTests(unittest.TestCase):
 
     def test_new_node_is_pending_and_rows_follow_expiry_order(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "later.yaml").write_text(
-            node_text("later", "较晚节点", "2028-01-01"), encoding="utf-8"
+        (root / "nodes" / "0002-later.yaml").write_text(
+            node_text("later", "较晚节点", "2028-01-01", number="0002"), encoding="utf-8"
         )
-        (root / "nodes" / "earlier.yaml").write_text(
+        (root / "nodes" / "0001-earlier.yaml").write_text(
             node_text("earlier", "较早节点", "2027-01-01"), encoding="utf-8"
         )
         (root / "review_records.yaml").write_text(
@@ -62,8 +67,9 @@ class ReviewGeneratorTests(unittest.TestCase):
 
         content = generate_review(root)
 
-        self.assertIn("[较早节点](nodes/earlier.yaml)", content)
-        self.assertIn("[较晚节点](nodes/later.yaml)", content)
+        self.assertIn("[较早节点](nodes/0001-earlier.yaml)", content)
+        self.assertIn("[较晚节点](nodes/0002-later.yaml)", content)
+        self.assertIn("| 编号 | 节点 | 审核日期 |", content)
         self.assertLess(content.index("较早节点"), content.index("较晚节点"))
         self.assertIn("| 待复核 | — | — | — |", content)
         self.assertIn("| 已复核 | 维持原判 | 2026-02-01 | 已完成测试复核 |", content)
@@ -72,7 +78,7 @@ class ReviewGeneratorTests(unittest.TestCase):
 
     def test_check_detects_new_node_without_overwriting_human_record(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "stable.yaml").write_text(
+        (root / "nodes" / "0001-stable.yaml").write_text(
             node_text("stable", "稳定节点", "2028-01-01"), encoding="utf-8"
         )
         (root / "review_records.yaml").write_text(
@@ -88,8 +94,8 @@ class ReviewGeneratorTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertIn("等待公开来源更新后复核", second)
 
-        (root / "nodes" / "new-node.yaml").write_text(
-            node_text("new-node", "新增节点", "2027-06-01"), encoding="utf-8"
+        (root / "nodes" / "0002-new-node.yaml").write_text(
+            node_text("new-node", "新增节点", "2027-06-01", number="0002"), encoding="utf-8"
         )
         self.assertFalse(review_is_current(root))
         output = io.StringIO()
@@ -105,7 +111,7 @@ class ReviewGeneratorTests(unittest.TestCase):
 
     def test_invalid_or_orphan_human_records_are_rejected(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "test-node.yaml").write_text(
+        (root / "nodes" / "0001-test-node.yaml").write_text(
             node_text("test-node", "测试节点", "2028-01-01"), encoding="utf-8"
         )
         (root / "review_records.yaml").write_text(
@@ -142,7 +148,7 @@ class ReviewGeneratorTests(unittest.TestCase):
 
     def test_conflicting_conclusions_are_rejected(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "test-node.yaml").write_text(
+        (root / "nodes" / "0001-test-node.yaml").write_text(
             node_text("test-node", "测试节点", "2028-01-01"), encoding="utf-8"
         )
         (root / "review_records.yaml").write_text(
@@ -161,3 +167,5 @@ class ReviewGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+```
+<!-- END FILE: tests/test_generate_review.py -->

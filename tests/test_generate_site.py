@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from html.parser import HTMLParser
@@ -8,13 +9,17 @@ from urllib.parse import urlsplit
 import yaml
 
 from scripts.generate_site import (
+    NUMBERED_MARKER,
     build_site,
+    join_soft,
     load_nodes,
     parse_acknowledgements,
+    parse_prose,
     reasoning_preview,
     render_acknowledgements,
     render_detail,
     render_index,
+    render_prose,
 )
 
 
@@ -207,6 +212,104 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('记录类型：访谈记录', content)
         self.assertIn('附件不通过静态站发布', content)
         self.assertNotIn('private.xlsx', content)
+
+    def test_parse_prose_joins_soft_lines_without_fusing_words(self) -> None:
+        self.assertEqual(join_soft("multi", "  Agent"), "multi Agent")
+        self.assertEqual(join_soft("1.", "6倍"), "1.6倍")
+        self.assertEqual(join_soft("OpenRouter", "于2026年"), "OpenRouter于2026年")
+        self.assertEqual(
+            parse_prose("这是一句因为源文件宽度而拆开的中文，\n下一行仍然属于同一句。"),
+            [("paragraph", "这是一句因为源文件宽度而拆开的中文，下一行仍然属于同一句。")],
+        )
+        self.assertEqual(reasoning_preview("multi\n  Agent完成第一句。第二句。"), "multi Agent完成第一句。")
+
+    def test_parse_prose_renders_numbered_arguments_without_duplicate_markers(self) -> None:
+        source = "一，第一论点尚未结束，\n    这里仍是第一论点；\n二，第二论点。"
+
+        blocks = parse_prose(source)
+        content = render_prose(source)
+
+        self.assertEqual(blocks, [("ordered_list", ["第一论点尚未结束，这里仍是第一论点；", "第二论点。"])])
+        self.assertIn('<ol class="argument-list">', content)
+        self.assertEqual(content.count("<li>"), 2)
+        self.assertNotIn("一，", content)
+        self.assertNotIn("二，", content)
+
+    def test_parse_prose_separates_conclusion_and_note(self) -> None:
+        source = (
+            "一，第一论点。\n"
+            "二，第二论点。\n"
+            "三层生态位各有占位者，独立平台难以进入。\n"
+            "边界说明：该结论只在特定条件下成立，\n"
+            "（条件仍在下一行）。"
+        )
+
+        self.assertEqual(
+            parse_prose(source),
+            [
+                ("ordered_list", ["第一论点。", "第二论点。"]),
+                ("paragraph", "三层生态位各有占位者，独立平台难以进入。"),
+                ("note", "边界说明：该结论只在特定条件下成立，（条件仍在下一行）。"),
+            ],
+        )
+
+    def test_parse_prose_does_not_treat_decimals_or_paper_ids_as_lists(self) -> None:
+        paragraphs = parse_prose("1.6倍增长不是列表。\n2502.08788号论文也不是列表。")
+        numbered = parse_prose("1. 第一项。\n2、第二项。")
+
+        self.assertEqual(paragraphs, [("paragraph", "1.6倍增长不是列表。2502.08788号论文也不是列表。")])
+        self.assertEqual(numbered, [("ordered_list", ["第一项。", "第二项。"])])
+
+    def test_parse_prose_preserves_blank_paragraphs_and_escapes_html(self) -> None:
+        blocks = parse_prose("第一段。\n\n第二段。")
+        content = render_prose("一，<script>alert(1)</script>与<strong>纯文本</strong>。")
+
+        self.assertEqual(blocks, [("paragraph", "第一段。"), ("paragraph", "第二段。")])
+        self.assertNotIn("<script>alert(1)</script>", content)
+        self.assertNotIn("<strong>纯文本</strong>", content)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", content)
+        self.assertIn("&lt;strong&gt;纯文本&lt;/strong&gt;", content)
+
+    def test_detail_renders_reasoning_as_semantic_blocks(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"][0]["分析"] = "一，第一项。\n二，第二项。\n结论：两项完整保留。\n边界说明：仅用于测试。"
+
+        content = render_detail(alpha, data, {"alpha": alpha})
+
+        self.assertIn('<div class="rich-text">', content)
+        self.assertIn('<ol class="argument-list">', content)
+        self.assertIn('class="argument-note"', content)
+        self.assertIn('<p class="argument-note">结论：两项完整保留。</p>', content)
+        rich_text = content.split('<div class="rich-text">', 1)[1].split('</div>', 1)[0]
+        self.assertEqual(rich_text.count("<li>"), 2)
+
+    def test_real_reasoning_fields_preserve_all_text(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        records = load_nodes(root)
+        self.assertTrue(records)
+
+        for file, data in records:
+            for index, death in enumerate(data.get("死法", []), start=1):
+                source = death.get("推理") or death.get("分析") or ""
+                blocks = parse_prose(source)
+                source_lines = []
+                for line in str(source).splitlines():
+                    marker = NUMBERED_MARKER.match(line)
+                    source_lines.append(marker.group("body") if marker else line)
+                expected = re.sub(r"\s+", "", "".join(source_lines))
+                actual_parts = []
+                for kind, payload in blocks:
+                    if kind == "ordered_list":
+                        self.assertTrue(payload)
+                        self.assertFalse(any(not item for item in payload))
+                        actual_parts.extend(payload)
+                    else:
+                        self.assertTrue(payload)
+                        actual_parts.append(payload)
+                actual = re.sub(r"\s+", "", "".join(actual_parts))
+                self.assertEqual(actual, expected, f"{file.name} 死法{index} 的论证文字发生变化")
 
     def test_acknowledgements_are_parsed_and_private_rows_are_omitted(self) -> None:
         root = self.make_repo()

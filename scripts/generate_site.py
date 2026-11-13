@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: scripts/generate_site.py -->
-```python
 #!/usr/bin/env python3
 """Build idea-tree's public static site without copying evidence or backups."""
 
@@ -847,5 +845,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-```
-<!-- END FILE: scripts/generate_site.py -->

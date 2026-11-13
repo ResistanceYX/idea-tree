@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: scripts/generate_review.py -->
-```python
 #!/usr/bin/env python3
 """Generate REVIEW.md from nodes and separate human review records."""
 
@@ -247,5 +245,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-```
-<!-- END FILE: scripts/generate_review.py -->

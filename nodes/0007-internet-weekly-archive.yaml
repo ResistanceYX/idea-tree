@@ -1,3 +1,4 @@
+编号: "0007"
 id: internet-weekly-archive
 标题: 周历史简报及档案网站
 一句话: 用AI馆员采集、编写并存档互联网各文化圈层每周重要事项，形成简报、可检索档案与B站编年史视频
@@ -72,7 +73,7 @@ id: internet-weekly-archive
   - 圈层标签与跨年度时间轴索引
 
 相关节点:
-  - 节点: dafeiyu-cyber-cemetery
+  - 节点: 0001-dafeiyu-cyber-cemetery
     关系: 同源母题
     说明: 都试图保存易逝的互联网文化；本节点侧重持续编年与检索，大肥鱼节点侧重单一热梗的悼念与存档
 

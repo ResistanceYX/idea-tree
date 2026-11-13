@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: scripts/generate_review.py -->
+```python
 #!/usr/bin/env python3
 """Generate REVIEW.md from nodes and separate human review records."""
 
@@ -11,6 +13,11 @@ from difflib import unified_diff
 from pathlib import Path
 
 import yaml
+
+try:
+    from scripts.node_files import node_identity
+except ModuleNotFoundError:  # Direct execution: python scripts/generate_review.py
+    from node_files import node_identity
 
 REVIEW_STATUSES = {"待复核", "已复核", "暂缓"}
 REVIEW_CONCLUSIONS = {"维持原判", "调整死因", "调整置信度", "调整复活状态", "修复证据"}
@@ -56,6 +63,7 @@ def load_nodes(root: Path) -> list[tuple[Path, dict]]:
         data = yaml.safe_load(file.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"nodes/{file.name} 的顶层必须是映射")
+        node_identity(file, data)
         records.append((file, data))
     return records
 
@@ -121,20 +129,20 @@ def load_review_records(root: Path, known_ids: set[str]) -> dict[str, dict]:
 
 def render_review(root: Path) -> str:
     nodes = load_nodes(root)
-    known_ids = {str(data.get("id", file.stem)) for file, data in nodes}
+    known_ids = {node_identity(file, data)[1] for file, data in nodes}
     human_records = load_review_records(root, known_ids)
     nodes = sorted(
         nodes,
         key=lambda record: (
             date_text(record[1].get("死因保质期")) or "9999-12-31",
-            str(record[1].get("id", record[0].stem)),
+            node_identity(*record)[0],
         ),
     )
 
     status_counts: Counter[str] = Counter()
     rows: list[str] = []
     for file, data in nodes:
-        node_id = str(data.get("id", file.stem))
+        node_number, node_id = node_identity(file, data)
         record = human_records.get(node_id, {})
         status = record.get("复核状态", "待复核")
         status_counts[status] += 1
@@ -143,6 +151,7 @@ def render_review(root: Path) -> str:
             "| "
             + " | ".join(
                 (
+                    f"`{node_number}`",
                     f"[{title}](nodes/{file.name})",
                     markdown_cell(data.get("审核日期")),
                     markdown_cell(data.get("死因保质期")),
@@ -177,8 +186,8 @@ def render_review(root: Path) -> str:
         "",
         f"当前共{len(nodes)}个正式节点：待复核{status_counts['待复核']}个，已复核{status_counts['已复核']}个，暂缓{status_counts['暂缓']}个。",
         "",
-        "| 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |",
-        "|---|---|---|---|---|---|---|",
+        "| 编号 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |",
+        "|---|---|---|---|---|---|---|---|",
         *rows,
     ]
     return "\n".join(lines) + "\n"
@@ -238,3 +247,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+```
+<!-- END FILE: scripts/generate_review.py -->

@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: scripts/node_files.py -->
-```python
 #!/usr/bin/env python3
 """Parse permanently numbered formal-node filenames without assigning numbers."""
 
@@ -49,5 +47,3 @@ def node_identity(file: Path, data: dict) -> tuple[str, str]:
 def node_sort_key(record: tuple[Path, dict]) -> tuple[str, str]:
     """Sort by the assigned permanent number; never assign or renumber nodes."""
     return node_identity(*record)
-```
-<!-- END FILE: scripts/node_files.py -->

@@ -5,10 +5,10 @@
 
 ## 总览
 
-- 节点：24 个
-- 死法：119 条
+- 节点：25 个
+- 死法：126 条
 - 复活候选：6 个
-- 已复活：10 个
+- 已复活：11 个
 
 ## 节点索引
 
@@ -24,6 +24,7 @@
 | [开源arXiv有趣论文发现及总结Agent插件](nodes/arxiv-interesting-paper-discovery-summary-agent-plugin.yaml) | `arxiv-interesting-paper-discovery-summary-agent-plugin` | 预审 | 已复活 | 人工智能 | 预印本发现与个性化科研信息筛选Agent | 伪需求、钱算不平、巨头碾压、政策风险、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
 | [开源哔哩哔哩自主宠物鲸Agent插件](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) | `bilibili-autonomous-pet-whale-agent-plugin` | 预审 | 已复活 | 人工智能 | 内容平台自主Agent与角色化个人信息筛选 | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 低 | 2026-11-11 | 2027-11-11 |
 | [云端全流程科研自动化Agent](nodes/cloud-research-automation-agent.yaml) | `cloud-research-automation-agent` | 预审 | 已复活 | 人工智能 | 科研智能体与云端研究工作流 | 钱算不平、巨头碾压、政策风险、信任成本、条件已死 | 高 | 2026-11-07 | 2027-11-07 |
+| [大肥鱼消除计划](nodes/dafeiyu-cleaner.yaml) | `dafeiyu-cleaner` | 预审 | 已复活 | 人工智能 | AI生成内容识别与个人信息过滤 | 伪需求、钱算不平、政策风险、季节魔咒、信任成本、条件已死、执行人限制 | 低 | 2026-11-13 | 2027-11-13 |
 | [大肥鱼赛博墓地](nodes/dafeiyu-cyber-cemetery.yaml) | `dafeiyu-cyber-cemetery` | 预审 | 死透 | 文娱 | 网络meme | 伪需求、政策风险、季节魔咒、执行人限制 | 低 | 2026-10-26 | 2026-11-29 |
 | [个性化DSH平台自动浏览、内容发现及总结插件生成Agent](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) | `dsh-platform-content-discovery-plugin-generator-agent` | 预审 | 已复活 | 人工智能 | DSH插件生成与平台内容发现工具工程 | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 中 | 2026-11-12 | 2027-11-12 |
 | [DSH插件产出内容汇总审核与优先级排序Agent](nodes/dsh-plugin-output-review-prioritization-agent.yaml) | `dsh-plugin-output-review-prioritization-agent` | 预审 | 已复活 | 人工智能 | 跨插件内容审阅与个性化优先级编排 | 伪需求、钱算不平、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
@@ -45,15 +46,15 @@
 
 | 死法类型 | 死法条数 | 涉及节点数 |
 |---|---:|---:|
-| 伪需求 | 11 | 11 |
-| 钱算不平 | 18 | 18 |
+| 伪需求 | 12 | 12 |
+| 钱算不平 | 19 | 19 |
 | 巨头碾压 | 15 | 15 |
-| 政策风险 | 16 | 16 |
-| 季节魔咒 | 2 | 2 |
+| 政策风险 | 17 | 17 |
+| 季节魔咒 | 3 | 3 |
 | 冷启动死锁 | 3 | 3 |
-| 信任成本 | 19 | 19 |
-| 条件已死 | 12 | 12 |
-| 执行人限制 | 18 | 18 |
+| 信任成本 | 20 | 20 |
+| 条件已死 | 13 | 13 |
+| 执行人限制 | 19 | 19 |
 | 理论证伪 | 5 | 5 |
 
 ## 按复活状态统计
@@ -62,11 +63,11 @@
 |---|---:|
 | 死透 | 8 |
 | 复活候选 | 6 |
-| 已复活 | 10 |
+| 已复活 | 11 |
 
 ## 按档案类型统计
 
 | 档案类型 | 节点数 |
 |---|---:|
-| 预审 | 23 |
+| 预审 | 24 |
 | 验尸 | 1 |

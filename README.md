@@ -20,11 +20,13 @@
 - 2. 核对死因、证据链接、置信度、备注和死因保质期，判断其结论与边界是否适用于当前点子，不把预审当成真实失败事实。
 - 3. 决定是否需要新增或更新档案；已有真实实施、停止、失败或转向记录时，可按验尸回写。
 
-**从哪儿开始**：可以查看以下三条
+**从哪儿开始**：可以查看以下五条
 - [死透示例：AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml)
 - [复活候选示例：AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml)
-- [已复活示例：云端全流程科研自动化Agent](nodes/0013-cloud-research-automation-agent.yaml)。
-
+- [已复活示例：云端全流程科研自动化Agent](nodes/0013-cloud-research-automation-agent.yaml)
+- [机构部署与多源证据示例：AI拦截仿真对话反诈Agent](nodes/0015-ai-scam-interception-agent.yaml)
+- [开源实现与风险边界示例：大肥鱼消除计划](nodes/0025-dafeiyu-cleaner.yaml)。
+- 
 ## 项目运行与维护
 
 - **工作方式**：AI初稿，人类审核定案。
@@ -63,6 +65,8 @@
 - 首个节点／历史示例：[大肥鱼赛博墓地](nodes/0001-dafeiyu-cyber-cemetery.yaml)
 - 死透节点示例：[AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml)
 - 复活候选节点示例：[AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml)
+- 机构部署与多源证据示例：[AI拦截仿真对话反诈Agent](nodes/0015-ai-scam-interception-agent.yaml)
+- 开源实现与风险边界示例：[大肥鱼消除计划](nodes/0025-dafeiyu-cleaner.yaml)
   
 格式：
 - 编号: 正式节点必填的永久档案序号，值必须为带引号的四位十进制字符串，如"0001"；普通节点从"0001"开始，"0000"永久保留给未来的idea-tree元节点。

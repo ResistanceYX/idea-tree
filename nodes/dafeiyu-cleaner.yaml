@@ -1,3 +1,4 @@
+编号: "0025"
 id: dafeiyu-cleaner
 标题: 大肥鱼消除计划
 一句话: |
@@ -218,7 +219,7 @@ id: dafeiyu-cleaner
   - 与识别逻辑解耦的原创角色和界面包，以及代码、美术、字体、品牌分别记录的授权清单
 
 相关节点:
-  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+  - 节点: 0016-bilibili-autonomous-pet-whale-agent-plugin
     关系: 同源现象下的互补工具
     说明: |
       开源哔哩哔哩自主宠物鲸Agent插件负责内容筛选、私人投递和可选公共互动，本节点在接收者本机减少疑似AI评论；

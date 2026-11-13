@@ -1,3 +1,4 @@
+编号: "0017"
 id: github-interesting-repository-discovery-agent-plugin
 标题: 开源GitHub有趣仓库发现Agent插件
 一句话: |
@@ -183,24 +184,24 @@ id: github-interesting-repository-discovery-agent-plugin
   - 针对DSH升级、Trending结构变化、插件／核心协议与模型更换的兼容性回归测试包
 
 相关节点:
-  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+  - 节点: 0016-bilibili-autonomous-pet-whale-agent-plugin
     关系: 跨平台同类工作流
     说明: |
       两者都在DSH中串联平台内容采集、模型筛选或摘要、Markdown日报与定时任务；
       本节点处理GitHub仓库发现，哔哩哔哩节点处理视频筛选、角色化私人日报与可选账号互动，
       不是直接派生关系，也不共享同一内容平台或完整产品边界
-  - 节点: arxiv-interesting-paper-discovery-summary-agent-plugin
+  - 节点: 0018-arxiv-interesting-paper-discovery-summary-agent-plugin
     关系: 跨平台同类工作流
     说明: |
       两者都在DSH中串联平台内容采集、兴趣或规则筛选、模型摘要／推荐、可检索档案与定时或按需运行；
       本节点处理GitHub公开仓库发现，arXiv节点处理论文元数据、本地兴趣知识库、中文推荐理由、反馈与可选深读，
       不是直接派生关系，也不共享同一内容平台或完整产品边界
-  - 节点: dsh-platform-content-discovery-plugin-generator-agent
+  - 节点: 0020-dsh-platform-content-discovery-plugin-generator-agent
     关系: 跨平台工作流抽象
     说明: |
       个性化DSH平台自动浏览、内容发现及总结插件生成Agent把本节点的“GitHub访问—仓库发现—筛选摘要—日报与档案”抽象为可复用插件模块；
       本节点是一个已经存在的平台专用实现，个性化DSH平台自动浏览、内容发现及总结插件生成Agent是参考多个实现生成其他平台候选插件的开发Agent，不是直接派生
-  - 节点: dsh-plugin-output-review-prioritization-agent
+  - 节点: 0021-dsh-plugin-output-review-prioritization-agent
     关系: 下游产出审阅
     说明: |
       DSH插件产出内容汇总审核与优先级排序Agent可把本节点生成的仓库发现、中文摘要与日报作为首批已知格式输入，进行跨插件去重、来源核对和统一排序；

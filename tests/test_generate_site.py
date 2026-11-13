@@ -11,6 +11,7 @@ from scripts.generate_site import (
     build_site,
     load_nodes,
     parse_acknowledgements,
+    reasoning_preview,
     render_acknowledgements,
     render_detail,
     render_index,
@@ -130,9 +131,53 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('仅用于测试静态站生成', content)
         self.assertIn('可拆零件', content)
         self.assertIn('了解预审', content)
+        self.assertIn('<h2 id="filters-title" tabindex="-1">检索档案</h2>', content)
+        self.assertIn('<h2 id="catalog-title" tabindex="-1">节点索引</h2>', content)
+        self.assertIn('死法类型（多选，满足任一）', content)
+        self.assertIn('id="filter-results-link"', content)
+        self.assertIn('查看 2 个结果 ↑', content)
+        self.assertIn('class="status-guide"', content)
+        self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
         self.assertIn('href="acknowledgements.html"', content)
         self.assertIn('href="nodes/alpha.html"', content)
         self.assertIn('/blob/main/nodes/alpha.yaml', content)
+
+    def test_quick_view_uses_excerpt_and_at_most_three_parts(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"][0]["分析"] = "第一个完整论点。第二个完整论点不应进入快速查看。"
+        data["可拆零件"] = ["零件一", "零件二", "零件三", "零件四", "零件五"]
+
+        content = render_index([(alpha, data)])
+        preview = content.split('<details class="record-preview">', 1)[1].split('</details>', 1)[0]
+
+        self.assertIn("第一个完整论点。", preview)
+        self.assertNotIn("第二个完整论点", preview)
+        self.assertEqual(preview.count("<li>"), 3)
+        self.assertIn("零件三", preview)
+        self.assertNotIn("零件四", preview)
+        self.assertIn("共 5 个零件，完整清单见完整档案。", preview)
+        self.assertNotIn("…", preview)
+        self.assertIn("第二个完整论点", content, "全文检索数据不应被预览截断破坏")
+        self.assertIn("零件五", content)
+
+    def test_reasoning_preview_preserves_short_text_and_shortens_long_sentence(self) -> None:
+        self.assertEqual(reasoning_preview("短内容，没有句末标点"), "短内容，没有句末标点")
+        self.assertEqual(reasoning_preview("第一句。第二句。"), "第一句。")
+
+        preview = reasoning_preview("甲" * 180 + "，" + "乙" * 80 + "。")
+
+        self.assertLessEqual(len(preview), 240)
+        self.assertGreaterEqual(len(preview), 180)
+        self.assertTrue(preview.endswith("…"))
+        self.assertNotIn("乙", preview)
+
+        numbered = "一，" + "甲" * 90 + "；\n  二，" + "乙" * 90 + "；\n  三，" + "丙" * 60 + "。"
+        numbered_preview = reasoning_preview(numbered)
+        self.assertNotIn("\n", numbered_preview)
+        self.assertFalse(numbered_preview.endswith("三…"), numbered_preview)
+        self.assertTrue(numbered_preview.endswith("乙…"), numbered_preview)
 
     def test_detail_preserves_evidence_reasoning_parts_and_related_links(self) -> None:
         root = self.make_repo()
@@ -153,6 +198,7 @@ class SiteGeneratorTests(unittest.TestCase):
             self.assertIn(expected, content)
         self.assertIn('<details class="death" id="death-1" open>', content)
         self.assertIn('id="death-actions" hidden', content)
+        self.assertIn('各死法默认收起，可逐条展开；通过死法锚点打开时会自动展开目标。', content)
         self.assertIn('src="../assets/site.js"', content)
         self.assertIn('href="beta.html">乙节点</a>', content)
         self.assertNotIn('href="beta.html">beta</a>', content)

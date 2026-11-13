@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: tests/test_validate.py -->
-```python
 import tempfile
 import unittest
 from pathlib import Path
@@ -172,5 +170,3 @@ id: broken-node
 
 if __name__ == "__main__":
     unittest.main()
-```
-<!-- END FILE: tests/test_validate.py -->

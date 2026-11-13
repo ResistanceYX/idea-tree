@@ -1,3 +1,4 @@
+编号: "0013"
 id: cloud-research-automation-agent
 标题: 云端全流程科研自动化Agent
 一句话: |
@@ -148,7 +149,7 @@ id: cloud-research-automation-agent
   - 机构数据分级、凭证托管、彻底删除、审计和私有化部署检查表
 
 相关节点:
-  - 节点: ai-federation-platform
+  - 节点: 0004-ai-federation-platform
     关系: 垂直领域参照
     说明: 两者均涉及多模型调度、任务分解和人工验收，但本节点聚焦可核查科研产物，并非由通用AI联合平台直接拆分，故不使用派生前缀
 

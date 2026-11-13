@@ -11,6 +11,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from scripts.node_files import node_identity, node_sort_key
+except ModuleNotFoundError:  # Direct execution: python scripts/generate_index.py
+    from node_files import node_identity, node_sort_key
+
 DEATH_TYPES = (
     "伪需求",
     "钱算不平",
@@ -46,6 +51,7 @@ def load_nodes(root: Path) -> list[tuple[Path, dict]]:
         data = yaml.safe_load(file.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"nodes/{file.name} 的顶层必须是映射")
+        node_identity(file, data)
         records.append((file, data))
     return records
 
@@ -63,7 +69,7 @@ def ordered_death_types(data: dict) -> list[str]:
 
 def render_index(records: list[tuple[Path, dict]]) -> str:
     """Render the complete index without dates, timestamps or random ordering."""
-    records = sorted(records, key=lambda record: str(record[1].get("id", record[0].stem)))
+    records = sorted(records, key=node_sort_key)
     death_counts: Counter[str] = Counter()
     death_nodes: dict[str, set[str]] = defaultdict(set)
     status_counts: Counter[str] = Counter()
@@ -71,7 +77,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
 
     rows: list[str] = []
     for file, data in records:
-        node_id = str(data.get("id", file.stem))
+        node_number, node_id = node_identity(file, data)
         deaths = [death for death in data.get("死法", []) if isinstance(death, dict)]
         types = ordered_death_types(data)
         status = str(data.get("复活状态", "—"))
@@ -89,6 +95,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
             "| "
             + " | ".join(
                 (
+                    f"`{node_number}`",
                     f"[{title}](nodes/{file.name})",
                     f"`{markdown_cell(node_id)}`",
                     markdown_cell(archive),
@@ -119,8 +126,8 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         "",
         "## 节点索引",
         "",
-        "| 标题 | id | 档案类型 | 复活状态 | 领域 | 子领域 | 死法类型 | 重启预算 | 审核日期 | 死因保质期 |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| 编号 | 标题 | id | 档案类型 | 复活状态 | 领域 | 子领域 | 死法类型 | 重启预算 | 审核日期 | 死因保质期 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
         *rows,
         "",
         "## 按死法类型统计",

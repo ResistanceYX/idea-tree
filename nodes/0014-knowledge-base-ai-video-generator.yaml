@@ -1,3 +1,4 @@
+编号: "0014"
 id: knowledge-base-ai-video-generator
 标题: 开源知识库节点AI视频生成器
 一句话:  |
@@ -141,7 +142,7 @@ id: knowledge-base-ai-video-generator
   - 单次生成成本、失败重试、修改轮次和创作者反馈记录
 
 相关节点:
-  - 节点: oss-video-generator
+  - 节点: 0006-oss-video-generator
     关系: 深化扩展
     说明: |
       本节点由开源仓库宣传与讲解视频设想深化而来，改为创作者自选单个知识库节点、开源生成工具和创作者自行发布；

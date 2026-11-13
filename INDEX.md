@@ -5,9 +5,9 @@
 
 ## 总览
 
-- 节点：23 个
-- 死法：114 条
-- 复活候选：5 个
+- 节点：24 个
+- 死法：119 条
+- 复活候选：6 个
 - 已复活：10 个
 
 ## 节点索引
@@ -30,6 +30,7 @@
 | [AI电子鼻（通用气味识别硬件创业）](nodes/electronic-nose-ai.yaml) | `electronic-nose-ai` | 预审 | 复活候选 | 硬科技 | 传感器、AI嗅觉 | 巨头碾压、信任成本、条件已死、执行人限制 | 高 | 2026-10-29 | 2028-01-01 |
 | [基于概率学模型的高考志愿填报服务（C端）](nodes/gaokao-zhiyuan-ai.yaml) | `gaokao-zhiyuan-ai` | 预审 | 死透 | 教育 | 高考升学，志愿填报 | 钱算不平、巨头碾压、政策风险、季节魔咒、信任成本 | 中 | 2026-10-28 | 2027-07-15 |
 | [开源GitHub有趣仓库发现Agent插件](nodes/github-interesting-repository-discovery-agent-plugin.yaml) | `github-interesting-repository-discovery-agent-plugin` | 预审 | 已复活 | 人工智能 | 开源软件发现与个人信息筛选Agent | 伪需求、钱算不平、巨头碾压、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
+| [政府部门权力滥用与贪腐风险扫描反馈Agent](nodes/government-power-abuse-corruption-risk-scanning-agent.yaml) | `government-power-abuse-corruption-risk-scanning-agent` | 预审 | 复活候选 | 政务科技 | 授权廉政风险审计与线索管理 | 政策风险、冷启动死锁、信任成本、执行人限制、理论证伪 | 高 | 2026-11-13 | 2027-11-13 |
 | [周历史简报及档案网站](nodes/internet-weekly-archive.yaml) | `internet-weekly-archive` | 预审 | 死透 | 内容与媒体 | 网络文化档案 | 伪需求、钱算不平、巨头碾压、执行人限制 | 低 | 2026-11-04 | 2029-11-04 |
 | [开源知识库节点AI视频生成器](nodes/knowledge-base-ai-video-generator.yaml) | `knowledge-base-ai-video-generator` | 预审 | 已复活 | 内容与媒体 | 开源创作工具与知识传播 | 钱算不平、巨头碾压、政策风险、信任成本、条件已死 | 低 | 2026-11-08 | 2029-11-08 |
 | [上市企业多源风险定时监测Agent插件](nodes/listed-company-multi-source-risk-monitoring-agent.yaml) | `listed-company-multi-source-risk-monitoring-agent` | 预审 | 复活候选 | 金融科技 | 上市企业多源风险监测与证据化研究 | 钱算不平、巨头碾压、政策风险、信任成本、理论证伪 | 中 | 2026-11-13 | 2027-11-13 |
@@ -47,25 +48,25 @@
 | 伪需求 | 11 | 11 |
 | 钱算不平 | 18 | 18 |
 | 巨头碾压 | 15 | 15 |
-| 政策风险 | 15 | 15 |
+| 政策风险 | 16 | 16 |
 | 季节魔咒 | 2 | 2 |
-| 冷启动死锁 | 2 | 2 |
-| 信任成本 | 18 | 18 |
+| 冷启动死锁 | 3 | 3 |
+| 信任成本 | 19 | 19 |
 | 条件已死 | 12 | 12 |
-| 执行人限制 | 17 | 17 |
-| 理论证伪 | 4 | 4 |
+| 执行人限制 | 18 | 18 |
+| 理论证伪 | 5 | 5 |
 
 ## 按复活状态统计
 
 | 复活状态 | 节点数 |
 |---|---:|
 | 死透 | 8 |
-| 复活候选 | 5 |
+| 复活候选 | 6 |
 | 已复活 | 10 |
 
 ## 按档案类型统计
 
 | 档案类型 | 节点数 |
 |---|---:|
-| 预审 | 22 |
+| 预审 | 23 |
 | 验尸 | 1 |

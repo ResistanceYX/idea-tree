@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: tests/test_generate_index.py -->
+```python
 import contextlib
 import io
 import sys
@@ -9,8 +11,11 @@ from unittest.mock import patch
 from scripts.generate_index import expected_index, generate_index, index_is_current, main
 
 
-def node_text(node_id: str, title: str, death_type: str = "伪需求", status: str = "死透") -> str:
-    return f"""id: {node_id}
+def node_text(
+    node_id: str, title: str, death_type: str = "伪需求", status: str = "死透", number: str = "0001"
+) -> str:
+    return f"""编号: "{number}"
+id: {node_id}
 标题: {title}
 档案类型: 预审
 一句话: 用于验证自动索引的测试节点
@@ -42,16 +47,19 @@ class IndexGeneratorTests(unittest.TestCase):
 
     def test_index_contains_node_fields_and_statistics(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "alpha.yaml").write_text(
-            node_text("alpha", "甲节点", "政策风险", "复活候选"), encoding="utf-8"
+        (root / "nodes" / "0002-alpha.yaml").write_text(
+            node_text("alpha", "甲节点", "政策风险", "复活候选", "0002"), encoding="utf-8"
         )
-        (root / "nodes" / "beta.yaml").write_text(
-            node_text("beta", "乙节点", "伪需求"), encoding="utf-8"
+        (root / "nodes" / "0001-beta.yaml").write_text(
+            node_text("beta", "乙节点", "伪需求", number="0001"), encoding="utf-8"
         )
 
         content = generate_index(root)
 
-        self.assertIn("[甲节点](nodes/alpha.yaml)", content)
+        self.assertIn("[甲节点](nodes/0002-alpha.yaml)", content)
+        self.assertIn("[乙节点](nodes/0001-beta.yaml)", content)
+        self.assertLess(content.index("乙节点"), content.index("甲节点"))
+        self.assertIn("| 编号 | 标题 | id |", content)
         self.assertIn("`alpha`", content)
         self.assertIn("预审", content)
         self.assertIn("复活候选", content)
@@ -67,7 +75,7 @@ class IndexGeneratorTests(unittest.TestCase):
 
     def test_repeated_generation_is_deterministic(self) -> None:
         root = self.make_repo()
-        (root / "nodes" / "stable.yaml").write_text(
+        (root / "nodes" / "0001-stable.yaml").write_text(
             node_text("stable", "稳定节点"), encoding="utf-8"
         )
 
@@ -81,7 +89,7 @@ class IndexGeneratorTests(unittest.TestCase):
 
     def test_check_detects_stale_index_after_node_change(self) -> None:
         root = self.make_repo()
-        node = root / "nodes" / "changing.yaml"
+        node = root / "nodes" / "0001-changing.yaml"
         node.write_text(node_text("changing", "修改前"), encoding="utf-8")
         generate_index(root)
         self.assertTrue(index_is_current(root))
@@ -103,3 +111,5 @@ class IndexGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+```
+<!-- END FILE: tests/test_generate_index.py -->

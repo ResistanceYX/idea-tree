@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: .github/workflows/validate.yml -->
+```yaml
 name: 校验节点并维护索引与复核清单
 
 on:
@@ -8,6 +10,7 @@ on:
       - "evidence/**"
       - "README.md"
       - "scripts/validate.py"
+      - "scripts/node_files.py"
       - "scripts/generate_index.py"
       - "scripts/generate_review.py"
       - "tests/**"
@@ -21,6 +24,7 @@ on:
       - "evidence/**"
       - "README.md"
       - "scripts/validate.py"
+      - "scripts/node_files.py"
       - "scripts/generate_index.py"
       - "scripts/generate_review.py"
       - "tests/**"
@@ -81,3 +85,5 @@ jobs:
           git add INDEX.md REVIEW.md
           git commit -m "chore: 自动更新索引与复核清单"
           git push
+```
+<!-- END FILE: .github/workflows/validate.yml -->

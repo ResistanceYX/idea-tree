@@ -1,3 +1,4 @@
+编号: "0018"
 id: arxiv-interesting-paper-discovery-summary-agent-plugin
 标题: 开源arXiv有趣论文发现及总结Agent插件
 一句话: |
@@ -213,30 +214,30 @@ id: arxiv-interesting-paper-discovery-summary-agent-plugin
   - 针对DSH升级、arXiv API、模型更换、向量依赖和定时任务的兼容性回归测试包
 
 相关节点:
-  - 节点: github-interesting-repository-discovery-agent-plugin
+  - 节点: 0017-github-interesting-repository-discovery-agent-plugin
     关系: 跨平台同类工作流
     说明: |
       两者都在DSH中串联平台内容采集、兴趣或规则筛选、模型摘要／推荐、可检索档案与定时或按需运行；
       本节点处理arXiv论文元数据、本地兴趣知识库、中文推荐理由、反馈与可选深读，GitHub节点处理公开仓库发现，
       不是直接派生关系，也不共享同一内容平台或完整产品边界
-  - 节点: bilibili-autonomous-pet-whale-agent-plugin
+  - 节点: 0016-bilibili-autonomous-pet-whale-agent-plugin
     关系: 跨平台同类工作流
     说明: |
       两者都在DSH中串联平台内容采集、兴趣或规则筛选、模型摘要／推荐、可检索档案与定时或按需运行；
       本节点处理arXiv论文元数据、本地兴趣知识库、中文推荐理由、反馈与可选深读，哔哩哔哩节点处理视频筛选、角色化私人日报与可选账号互动，
       不是直接派生关系，也不共享同一内容平台或完整产品边界
-  - 节点: research-theory-path-generation-comprehension-agent-plugin
+  - 节点: 0019-research-theory-path-generation-comprehension-agent-plugin
     关系: 后续功能启发
     说明: |
       开源理论研究路径生成及记录辅助理解Agent插件由本节点“发现并用中文摘要理解arXiv新论文”的工作流启发，但关系较弱：
       本节点关注持续发现、兴趣筛选、周期摘要与论文库，开源理论研究路径生成及记录辅助理解Agent插件关注从用户指定的一篇论文向后递归溯源、构建研究关系图并梳理论证难点；
       两者只共享论文读取、模型摘要和本地研究记录的部分基础，不是直接派生，也不自动继承本节点与开源GitHub有趣仓库发现Agent插件或开源哔哩哔哩自主宠物鲸Agent插件的关系
-  - 节点: dsh-platform-content-discovery-plugin-generator-agent
+  - 节点: 0020-dsh-platform-content-discovery-plugin-generator-agent
     关系: 跨平台工作流抽象
     说明: |
       个性化DSH平台自动浏览、内容发现及总结插件生成Agent把本节点的“论文元数据获取—兴趣筛选—中文推荐理由—反馈与论文库”抽象为可复用插件模块；
       本节点关注arXiv持续发现，个性化DSH平台自动浏览、内容发现及总结插件生成Agent关注按新平台需求生成和验收专用插件，不是直接派生
-  - 节点: dsh-plugin-output-review-prioritization-agent
+  - 节点: 0021-dsh-plugin-output-review-prioritization-agent
     关系: 下游产出审阅
     说明: |
       DSH插件产出内容汇总审核与优先级排序Agent可把本节点生成的论文推荐、中文理由与论文库作为首批已知格式输入，保留arXiv标识、版本和原文范围后进入统一审阅；

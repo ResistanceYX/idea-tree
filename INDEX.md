@@ -5,9 +5,9 @@
 
 ## 总览
 
-- 节点：22 个
-- 死法：109 条
-- 复活候选：4 个
+- 节点：23 个
+- 死法：114 条
+- 复活候选：5 个
 - 已复活：10 个
 
 ## 节点索引
@@ -32,6 +32,7 @@
 | [开源GitHub有趣仓库发现Agent插件](nodes/github-interesting-repository-discovery-agent-plugin.yaml) | `github-interesting-repository-discovery-agent-plugin` | 预审 | 已复活 | 人工智能 | 开源软件发现与个人信息筛选Agent | 伪需求、钱算不平、巨头碾压、信任成本、条件已死、执行人限制 | 低 | 2026-11-12 | 2027-11-12 |
 | [周历史简报及档案网站](nodes/internet-weekly-archive.yaml) | `internet-weekly-archive` | 预审 | 死透 | 内容与媒体 | 网络文化档案 | 伪需求、钱算不平、巨头碾压、执行人限制 | 低 | 2026-11-04 | 2029-11-04 |
 | [开源知识库节点AI视频生成器](nodes/knowledge-base-ai-video-generator.yaml) | `knowledge-base-ai-video-generator` | 预审 | 已复活 | 内容与媒体 | 开源创作工具与知识传播 | 钱算不平、巨头碾压、政策风险、信任成本、条件已死 | 低 | 2026-11-08 | 2029-11-08 |
+| [上市企业多源风险定时监测Agent插件](nodes/listed-company-multi-source-risk-monitoring-agent.yaml) | `listed-company-multi-source-risk-monitoring-agent` | 预审 | 复活候选 | 金融科技 | 上市企业多源风险监测与证据化研究 | 钱算不平、巨头碾压、政策风险、信任成本、理论证伪 | 中 | 2026-11-13 | 2027-11-13 |
 | [长期伴随学习辅助AI](nodes/long-term-learning-companion-ai.yaml) | `long-term-learning-companion-ai` | 预审 | 复活候选 | 人工智能 | 长期个人记忆与智能教育 | 钱算不平、巨头碾压、政策风险、信任成本、执行人限制 | 高 | 2026-11-07 | 2027-11-07 |
 | [开源仓库AI视频生成器](nodes/oss-video-generator.yaml) | `oss-video-generator` | 预审 | 死透 | 开发者工具 | 内容生成与项目推广 | 伪需求、钱算不平、巨头碾压、执行人限制 | 低 | 2026-11-02 | 2029-11-02 |
 | [开源理论研究路径生成及记录辅助理解Agent插件](nodes/research-theory-path-generation-comprehension-agent-plugin.yaml) | `research-theory-path-generation-comprehension-agent-plugin` | 预审 | 已复活 | 人工智能 | 论文理论溯源与证据化辅助阅读Agent | 伪需求、钱算不平、政策风险、信任成本、条件已死、执行人限制 | 中 | 2026-11-12 | 2027-11-12 |
@@ -44,27 +45,27 @@
 | 死法类型 | 死法条数 | 涉及节点数 |
 |---|---:|---:|
 | 伪需求 | 11 | 11 |
-| 钱算不平 | 17 | 17 |
-| 巨头碾压 | 14 | 14 |
-| 政策风险 | 14 | 14 |
+| 钱算不平 | 18 | 18 |
+| 巨头碾压 | 15 | 15 |
+| 政策风险 | 15 | 15 |
 | 季节魔咒 | 2 | 2 |
 | 冷启动死锁 | 2 | 2 |
-| 信任成本 | 17 | 17 |
+| 信任成本 | 18 | 18 |
 | 条件已死 | 12 | 12 |
 | 执行人限制 | 17 | 17 |
-| 理论证伪 | 3 | 3 |
+| 理论证伪 | 4 | 4 |
 
 ## 按复活状态统计
 
 | 复活状态 | 节点数 |
 |---|---:|
 | 死透 | 8 |
-| 复活候选 | 4 |
+| 复活候选 | 5 |
 | 已复活 | 10 |
 
 ## 按档案类型统计
 
 | 档案类型 | 节点数 |
 |---|---:|
-| 预审 | 21 |
+| 预审 | 22 |
 | 验尸 | 1 |

@@ -44,6 +44,141 @@ def escape(value: object) -> str:
     return html.escape(text(value), quote=True)
 
 
+NUMBERED_MARKER = re.compile(
+    r"^\s*(?:[一二三四五六七八九十]+[、，]|\d+[、．.](?!\d))\s*(?P<body>.*)$"
+)
+NOTE_PREFIX = re.compile(r"^\s*(?:边界说明|结论|补充说明|补充)\s*[：:]")
+SENTENCE_END = re.compile(r"[。！？][”’\"'）)]*$")
+
+
+def join_soft(left: str, right: str) -> str:
+    """Join source-wrapped prose without fusing adjacent Latin words or numbers."""
+    left = left.rstrip()
+    right = right.strip()
+    if not left:
+        return right
+    if not right:
+        return left
+    needs_space = (
+        re.search(r"[A-Za-z0-9]$", left)
+        and re.match(r"[A-Za-z0-9]", right)
+    )
+    return left + (" " if needs_space else "") + right
+
+
+def parse_prose(value: object) -> list[tuple[str, object]]:
+    """Parse plain argument text into paragraphs, ordered lists and notes."""
+    source = text(value).strip()
+    if not source:
+        return []
+
+    blocks: list[tuple[str, object]] = []
+    mode = ""
+    buffer: list[str] = []
+    items: list[str] = []
+
+    def buffered_text() -> str:
+        result = ""
+        for line in buffer:
+            result = join_soft(result, line)
+        return result
+
+    def flush_paragraph() -> None:
+        nonlocal buffer
+        content = buffered_text()
+        if content:
+            blocks.append(("paragraph", content))
+        buffer = []
+
+    def flush_list() -> None:
+        nonlocal buffer, items
+        content = buffered_text()
+        if content:
+            items.append(content)
+        buffer = []
+        if items:
+            blocks.append(("ordered_list", items))
+        items = []
+
+    def flush_note() -> None:
+        nonlocal buffer
+        content = buffered_text()
+        if content:
+            blocks.append(("note", content))
+        buffer = []
+
+    def flush_current() -> None:
+        nonlocal mode
+        if mode == "ordered_list":
+            flush_list()
+        elif mode == "note":
+            flush_note()
+        elif mode == "paragraph":
+            flush_paragraph()
+        mode = ""
+
+    for raw_line in source.splitlines():
+        line = raw_line.strip()
+        if not line:
+            flush_current()
+            continue
+
+        marker = NUMBERED_MARKER.match(raw_line)
+        if marker:
+            if mode != "ordered_list":
+                flush_current()
+                mode = "ordered_list"
+            else:
+                content = buffered_text()
+                if content:
+                    items.append(content)
+                buffer = []
+            buffer = [marker.group("body").strip()]
+            continue
+
+        if NOTE_PREFIX.match(raw_line):
+            flush_current()
+            mode = "note"
+            buffer = [line]
+            continue
+
+        if mode == "ordered_list":
+            current = buffered_text()
+            is_top_level = not raw_line[:1].isspace()
+            if is_top_level and SENTENCE_END.search(current):
+                flush_current()
+                mode = "paragraph"
+                buffer = [line]
+            else:
+                buffer.append(line)
+            continue
+
+        if not mode:
+            mode = "paragraph"
+        buffer.append(line)
+
+    flush_current()
+    return blocks
+
+
+def render_prose(value: object) -> str:
+    """Render escaped semantic blocks; YAML text is never treated as HTML."""
+    blocks = parse_prose(value)
+    if not blocks:
+        return ""
+    output = ['<div class="rich-text">']
+    for kind, payload in blocks:
+        if kind == "ordered_list":
+            items = "".join(f"<li>{escape(item)}</li>" for item in payload)
+            output.append(f'<ol class="argument-list">{items}</ol>')
+        elif kind == "note":
+            output.append(f'<p class="argument-note">{escape(payload)}</p>')
+        else:
+            output.append(f"<p>{escape(payload)}</p>")
+    output.append("</div>")
+    return "".join(output)
+
+
 def load_nodes(root: Path) -> list[tuple[Path, dict]]:
     files = sorted((root / "nodes").glob("*.yaml"), key=lambda path: path.name)
     if not files:
@@ -154,7 +289,9 @@ def archive_term(archive: str) -> str:
 
 def reasoning_preview(value: object, limit: int = 240) -> str:
     """Keep the first complete sentence, shortening only an overlong sentence."""
-    source = re.sub(r"[ \t]*\n[ \t]*", "", text(value).strip())
+    source = ""
+    for line in text(value).strip().splitlines():
+        source = join_soft(source, line)
     if not source:
         return ""
     sentence_end = re.search(r"[。！？!?](?:[”’\"'])?", source)
@@ -540,7 +677,7 @@ def render_detail(
     <h4>证据</h4>
     <p>{escape(death.get('证据'))}</p>
     <h4>推理／分析</h4>
-    <p>{escape(reasoning)}</p>
+    {render_prose(reasoning)}
     {''.join(optional_sections)}
     {links_html}
   </div>

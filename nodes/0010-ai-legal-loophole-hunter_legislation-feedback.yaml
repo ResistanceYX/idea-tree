@@ -1,3 +1,4 @@
+编号: "0010"
 id: ai-legal-loophole-hunter_legislation-feedback
 标题: AI立法意见辅助提交
 一句话: 公众对着法律草案说出自身经历，AI将其整理成规范立法意见并辅助提交至中国人大网征求意见系统
@@ -82,7 +83,7 @@ id: ai-legal-loophole-hunter_legislation-feedback
   - 立法征求意见动向监测提醒（订阅制小工具）
 
 相关节点:
-  - 节点: ai-legal-loophole-hunter
+  - 节点: 0005-ai-legal-loophole-hunter
     关系: 直接母题
     说明: |
       本节点由主节点的可拆零件"立法意见辅助生成器"独立成节点，

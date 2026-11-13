@@ -1,3 +1,5 @@
+<!-- BEGIN FILE: scripts/generate_site.py -->
+```python
 #!/usr/bin/env python3
 """Build idea-tree's public static site without copying evidence or backups."""
 
@@ -14,6 +16,11 @@ from pathlib import Path
 from urllib.parse import quote, urlparse
 
 import yaml
+
+try:
+    from scripts.node_files import node_identity, node_sort_key, parse_node_filename
+except ModuleNotFoundError:  # Direct execution: python scripts/generate_site.py
+    from node_files import node_identity, node_sort_key, parse_node_filename
 
 REPOSITORY_URL = "https://github.com/ResistanceYX/idea-tree"
 DEATH_TYPES = (
@@ -188,6 +195,7 @@ def load_nodes(root: Path) -> list[tuple[Path, dict]]:
         data = yaml.safe_load(file.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"nodes/{file.name} 的顶层必须是映射")
+        node_identity(file, data)
         records.append((file, data))
     return records
 
@@ -467,7 +475,7 @@ def render_acknowledgements(people: list[dict]) -> str:
 def render_index(records: list[tuple[Path, dict]]) -> str:
     records = sorted(
         records,
-        key=lambda record: (text(record[1].get("死因保质期")) or "9999-12-31", text(record[1].get("id"))),
+        key=lambda record: (text(record[1].get("死因保质期")) or "9999-12-31", node_sort_key(record)),
     )
     death_counts: Counter[str] = Counter()
     for _file, data in records:
@@ -495,7 +503,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
 
     rows = []
     for file, data in records:
-        node_id = text(data.get("id", file.stem))
+        node_number, node_id = node_identity(file, data)
         title = text(data.get("标题", node_id))
         domain = text(data.get("领域"))
         subdomain = text(data.get("子领域"))
@@ -508,7 +516,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
         first_reasoning = text(deaths[0].get("推理") or deaths[0].get("分析")) if deaths else ""
         parts = [text(part) for part in data.get("可拆零件", []) or []]
         search = " ".join(
-            (title, node_id, domain, subdomain, " ".join(types), status, archive, one_line, first_reasoning, " ".join(parts))
+            (node_number, f"#{node_number}", title, node_id, domain, subdomain, " ".join(types), status, archive, one_line, first_reasoning, " ".join(parts))
         )
         reasoning_html = (
             f'<div class="record-reasoning"><strong>第一条推理／分析</strong>'
@@ -525,8 +533,8 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
             f"""<article class="record" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
   <div class="record-main">
     <div class="record-title">
-      <a href="nodes/{escape(file.stem)}.html">{escape(title)}</a>
-      <p class="record-id">{escape(node_id)}</p>
+      <a href="nodes/{escape(node_id)}.html">{escape(title)}</a>
+      <p class="record-id">#{escape(node_number)} · {escape(node_id)}</p>
     </div>
     <div class="record-domain">{escape(domain)}<br><span class="record-id">{escape(subdomain)}</span></div>
     <div class="record-deaths">{escape("、".join(types))}</div>
@@ -539,7 +547,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     {reasoning_html}
     {parts_html}
     <div class="record-actions">
-      <a href="nodes/{escape(file.stem)}.html">阅读完整档案</a>
+      <a href="nodes/{escape(node_id)}.html">阅读完整档案</a>
       <a href="{REPOSITORY_URL}/blob/main/nodes/{escape(file.name)}" target="_blank" rel="noopener noreferrer">原始YAML ↗</a>
     </div>
   </details>
@@ -609,7 +617,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
       <a class="mobile-filter-link" href="#filters-title">筛选档案 ↓</a>
     </div>
     {render_status_guide()}
-    <div class="record-labels" aria-hidden="true"><span>节点／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
+    <div class="record-labels" aria-hidden="true"><span>节点／编号／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
     {''.join(rows)}
     <div class="empty-state" id="empty-state" hidden><p>没有匹配的节点。请减少筛选条件，或清除后重新检索。</p></div>
   </section>
@@ -623,16 +631,17 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
 def render_detail(
     file: Path,
     data: dict,
-    id_to_file: dict[str, Path],
-    id_to_title: dict[str, str] | None = None,
+    ref_to_file: dict[str, Path],
+    ref_to_title: dict[str, str] | None = None,
 ) -> str:
-    id_to_title = id_to_title or {}
-    node_id = text(data.get("id", file.stem))
+    ref_to_title = ref_to_title or {}
+    node_number, node_id = node_identity(file, data)
     title = text(data.get("标题", node_id))
     one_line = text(data.get("一句话"))
     status = text(data.get("复活状态"))
     archive = text(data.get("档案类型"))
     metadata = [
+        ("编号", f"#{node_number}", True),
         ("id", node_id, True),
         ("档案类型", archive, False),
         ("复活状态", status, False),
@@ -691,10 +700,11 @@ def render_detail(
         if not isinstance(relation, dict):
             continue
         target = text(relation.get("节点"))
-        target_file = id_to_file.get(target)
-        target_title = id_to_title.get(target, target)
+        target_file = ref_to_file.get(target)
+        target_title = ref_to_title.get(target, target)
         if target_file:
-            target_html = f'<a href="{escape(target_file.stem)}.html">{escape(target_title)}</a>'
+            _target_number, target_id = parse_node_filename(target_file)
+            target_html = f'<a href="{escape(target_id)}.html">{escape(target_title)}</a>'
         else:
             target_html = escape(target_title)
         note = relation.get("说明")
@@ -724,7 +734,7 @@ def render_detail(
             page_header("../", detail=True),
             f"""<main id="main-content" class="shell detail-layout">
   <aside class="detail-aside">
-    <p class="kicker">Archive record / {escape(node_id)}</p>
+    <p class="kicker">Archive record / #{escape(node_number)} · {escape(node_id)}</p>
     <h1>{escape(title)}</h1>
     <p class="detail-lede">{escape(one_line)}</p>
     <div class="badges"><span class="badge archive-tag">{escape(archive)}</span><span class="badge revival-tag {revival_class(status)}">{escape(status)}</span></div>
@@ -757,10 +767,12 @@ def render_detail(
 def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
     result = []
     for file, data in records:
+        node_number, node_id = node_identity(file, data)
         result.append(
             {
-                "id": text(data.get("id", file.stem)),
-                "标题": text(data.get("标题", file.stem)),
+                "编号": node_number,
+                "id": node_id,
+                "标题": text(data.get("标题", node_id)),
                 "档案类型": text(data.get("档案类型")),
                 "复活状态": text(data.get("复活状态")),
                 "领域": text(data.get("领域")),
@@ -773,7 +785,7 @@ def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
                     for item in data.get("相关节点", []) or []
                     if isinstance(item, dict)
                 ],
-                "页面": f"nodes/{file.stem}.html",
+                "页面": f"nodes/{node_id}.html",
             }
         )
     return result
@@ -785,8 +797,8 @@ def build_site(root: Path, output: Path) -> int:
     if output == root or output in root.parents:
         raise ValueError("输出目录不得是仓库根目录或其上级目录")
     records = load_nodes(root)
-    id_to_file = {text(data.get("id", file.stem)): file for file, data in records}
-    id_to_title = {text(data.get("id", file.stem)): text(data.get("标题", file.stem)) for file, data in records}
+    ref_to_file = {file.stem: file for file, data in records}
+    ref_to_title = {file.stem: text(data.get("标题", node_identity(file, data)[1])) for file, data in records}
     acknowledgements = parse_acknowledgements(root)
     assets = root / "site" / "assets"
     if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
@@ -803,8 +815,9 @@ def build_site(root: Path, output: Path) -> int:
         render_acknowledgements(acknowledgements), encoding="utf-8"
     )
     for file, data in records:
-        (output / "nodes" / f"{file.stem}.html").write_text(
-            render_detail(file, data, id_to_file, id_to_title), encoding="utf-8"
+        _node_number, node_id = node_identity(file, data)
+        (output / "nodes" / f"{node_id}.html").write_text(
+            render_detail(file, data, ref_to_file, ref_to_title), encoding="utf-8"
         )
     (output / "data" / "nodes.json").write_text(
         json.dumps(public_node_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -834,3 +847,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+```
+<!-- END FILE: scripts/generate_site.py -->

@@ -1,3 +1,4 @@
+编号: "0005"
 id: ai-legal-loophole-hunter
 标题: AI法律漏洞搜寻与意见提交
 一句话: 用AI扫描现行法律法规找出漏洞与冲突，向有关部门提交立法建议，并向企业与个人售卖漏洞报告
@@ -86,7 +87,7 @@ id: ai-legal-loophole-hunter
   - 立法征求意见动向监测提醒
 
 相关节点:
-  - 节点: ai-legal-loophole-hunter_legislation-feedback
+  - 节点: 0010-ai-legal-loophole-hunter_legislation-feedback
     关系: 直接派生（弱化变体）
     说明: |
       同一核心机制（AI分析法律文本）的商业版与本弱化版。弱化轴：

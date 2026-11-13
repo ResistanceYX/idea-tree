@@ -1,3 +1,4 @@
+编号: "0019"
 id: research-theory-path-generation-comprehension-agent-plugin
 标题: 开源理论研究路径生成及记录辅助理解Agent插件
 一句话: |
@@ -207,13 +208,13 @@ id: research-theory-path-generation-comprehension-agent-plugin
   - 面向数学、计算机、实验科学等不同证据形态配置教材终点、证明步骤、实验复核和争议展示方式的学科适配模板
 
 相关节点:
-  - 节点: arxiv-interesting-paper-discovery-summary-agent-plugin
+  - 节点: 0018-arxiv-interesting-paper-discovery-summary-agent-plugin
     关系: 后续功能启发
     说明: |
       本节点由开源arXiv有趣论文发现及总结Agent插件“发现并用中文摘要理解arXiv新论文”的工作流启发，但关系较弱：
       开源arXiv有趣论文发现及总结Agent插件关注持续发现、兴趣筛选、周期摘要与论文库，本节点关注从用户指定的一篇论文向后递归溯源、构建研究关系图并梳理论证难点；
       两者只共享论文读取、模型摘要和本地研究记录的部分基础，不是直接派生，也不自动继承开源GitHub有趣仓库发现Agent插件或开源哔哩哔哩自主宠物鲸Agent插件的关系
-
+      
 死因保质期: 2027-11-12
 起草AI: 澄樾（Kimi-K3.1）
 审核人: ResistanceYX

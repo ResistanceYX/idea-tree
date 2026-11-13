@@ -19,30 +19,30 @@
 
 当前共25个正式节点：待复核25个，已复核0个，暂缓0个。
 
-| 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
-|---|---|---|---|---|---|---|
-| [大肥鱼赛博墓地](nodes/dafeiyu-cyber-cemetery.yaml) | 2026-10-26 | 2026-11-29 | 待复核 | — | — | — |
-| [AI法律漏洞搜寻与意见提交](nodes/ai-legal-loophole-hunter.yaml) | 2026-10-31 | 2027-01-01 | 待复核 | — | — | — |
-| [AI联合平台](nodes/ai-federation-platform.yaml) | 2026-10-30 | 2027-04-30 | 待复核 | — | — | — |
-| [AI立法意见辅助提交](nodes/ai-legal-loophole-hunter_legislation-feedback.yaml) | 2026-10-30 | 2027-06-30 | 待复核 | — | — | — |
-| [基于概率学模型的高考志愿填报服务（C端）](nodes/gaokao-zhiyuan-ai.yaml) | 2026-10-28 | 2027-07-15 | 待复核 | — | — | — |
-| [颈深淋巴管／结—静脉吻合术治疗阿尔茨海默病](nodes/alzheimer-dclva-surgery.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
-| [云端全流程科研自动化Agent](nodes/cloud-research-automation-agent.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
-| [长期伴随学习辅助AI](nodes/long-term-learning-companion-ai.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
-| [AI拦截仿真对话反诈Agent](nodes/ai-scam-interception-agent.yaml) | 2026-11-10 | 2027-11-10 | 待复核 | — | — | — |
-| [开源哔哩哔哩自主宠物鲸Agent插件](nodes/bilibili-autonomous-pet-whale-agent-plugin.yaml) | 2026-11-11 | 2027-11-11 | 待复核 | — | — | — |
-| [开源arXiv有趣论文发现及总结Agent插件](nodes/arxiv-interesting-paper-discovery-summary-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [个性化DSH平台自动浏览、内容发现及总结插件生成Agent](nodes/dsh-platform-content-discovery-plugin-generator-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [DSH插件产出内容汇总审核与优先级排序Agent](nodes/dsh-plugin-output-review-prioritization-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [开源GitHub有趣仓库发现Agent插件](nodes/github-interesting-repository-discovery-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [开源理论研究路径生成及记录辅助理解Agent插件](nodes/research-theory-path-generation-comprehension-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [通用DSH跨平台自主宠物鲸插件](nodes/universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
-| [大肥鱼消除计划](nodes/dafeiyu-cleaner.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
-| [政府部门权力滥用与贪腐风险扫描反馈Agent](nodes/government-power-abuse-corruption-risk-scanning-agent.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
-| [上市企业多源风险定时监测Agent插件](nodes/listed-company-multi-source-risk-monitoring-agent.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
-| [AI电子鼻（通用气味识别硬件创业）](nodes/electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
-| [AI游戏修改器及其平台](nodes/ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
-| [AI生成红色题材中小体量视觉小说](nodes/ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
-| [开源仓库AI视频生成器](nodes/oss-video-generator.yaml) | 2026-11-02 | 2029-11-02 | 待复核 | — | — | — |
-| [周历史简报及档案网站](nodes/internet-weekly-archive.yaml) | 2026-11-04 | 2029-11-04 | 待复核 | — | — | — |
-| [开源知识库节点AI视频生成器](nodes/knowledge-base-ai-video-generator.yaml) | 2026-11-08 | 2029-11-08 | 待复核 | — | — | — |
+| 编号 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
+|---|---|---|---|---|---|---|---|
+| `0001` | [大肥鱼赛博墓地](nodes/0001-dafeiyu-cyber-cemetery.yaml) | 2026-10-26 | 2026-11-29 | 待复核 | — | — | — |
+| `0005` | [AI法律漏洞搜寻与意见提交](nodes/0005-ai-legal-loophole-hunter.yaml) | 2026-10-31 | 2027-01-01 | 待复核 | — | — | — |
+| `0004` | [AI联合平台](nodes/0004-ai-federation-platform.yaml) | 2026-10-30 | 2027-04-30 | 待复核 | — | — | — |
+| `0010` | [AI立法意见辅助提交](nodes/0010-ai-legal-loophole-hunter_legislation-feedback.yaml) | 2026-10-30 | 2027-06-30 | 待复核 | — | — | — |
+| `0002` | [基于概率学模型的高考志愿填报服务（C端）](nodes/0002-gaokao-zhiyuan-ai.yaml) | 2026-10-28 | 2027-07-15 | 待复核 | — | — | — |
+| `0011` | [颈深淋巴管／结—静脉吻合术治疗阿尔茨海默病](nodes/0011-alzheimer-dclva-surgery.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
+| `0012` | [长期伴随学习辅助AI](nodes/0012-long-term-learning-companion-ai.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
+| `0013` | [云端全流程科研自动化Agent](nodes/0013-cloud-research-automation-agent.yaml) | 2026-11-07 | 2027-11-07 | 待复核 | — | — | — |
+| `0015` | [AI拦截仿真对话反诈Agent](nodes/0015-ai-scam-interception-agent.yaml) | 2026-11-10 | 2027-11-10 | 待复核 | — | — | — |
+| `0016` | [开源哔哩哔哩自主宠物鲸Agent插件](nodes/0016-bilibili-autonomous-pet-whale-agent-plugin.yaml) | 2026-11-11 | 2027-11-11 | 待复核 | — | — | — |
+| `0017` | [开源GitHub有趣仓库发现Agent插件](nodes/0017-github-interesting-repository-discovery-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0018` | [开源arXiv有趣论文发现及总结Agent插件](nodes/0018-arxiv-interesting-paper-discovery-summary-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0019` | [开源理论研究路径生成及记录辅助理解Agent插件](nodes/0019-research-theory-path-generation-comprehension-agent-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0020` | [个性化DSH平台自动浏览、内容发现及总结插件生成Agent](nodes/0020-dsh-platform-content-discovery-plugin-generator-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0021` | [DSH插件产出内容汇总审核与优先级排序Agent](nodes/0021-dsh-plugin-output-review-prioritization-agent.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0022` | [通用DSH跨平台自主宠物鲸插件](nodes/0022-universal-dsh-cross-platform-autonomous-pet-whale-plugin.yaml) | 2026-11-12 | 2027-11-12 | 待复核 | — | — | — |
+| `0023` | [上市企业多源风险定时监测Agent插件](nodes/0023-listed-company-multi-source-risk-monitoring-agent.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
+| `0024` | [政府部门权力滥用与贪腐风险扫描反馈Agent](nodes/0024-government-power-abuse-corruption-risk-scanning-agent.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
+| `0025` | [大肥鱼消除计划](nodes/0025-dafeiyu-cleaner.yaml) | 2026-11-13 | 2027-11-13 | 待复核 | — | — | — |
+| `0003` | [AI电子鼻（通用气味识别硬件创业）](nodes/0003-electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
+| `0008` | [AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
+| `0009` | [AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
+| `0006` | [开源仓库AI视频生成器](nodes/0006-oss-video-generator.yaml) | 2026-11-02 | 2029-11-02 | 待复核 | — | — | — |
+| `0007` | [周历史简报及档案网站](nodes/0007-internet-weekly-archive.yaml) | 2026-11-04 | 2029-11-04 | 待复核 | — | — | — |
+| `0014` | [开源知识库节点AI视频生成器](nodes/0014-knowledge-base-ai-video-generator.yaml) | 2026-11-08 | 2029-11-08 | 待复核 | — | — | — |

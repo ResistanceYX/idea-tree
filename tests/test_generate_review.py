@@ -1,5 +1,3 @@
-<!-- BEGIN FILE: tests/test_generate_review.py -->
-```python
 import contextlib
 import io
 import sys
@@ -167,5 +165,3 @@ class ReviewGeneratorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-```
-<!-- END FILE: tests/test_generate_review.py -->

@@ -16,8 +16,10 @@ from urllib.parse import quote, urlparse
 import yaml
 
 try:
+    from scripts.generate_review import load_review_records
     from scripts.node_files import node_identity, node_sort_key, parse_node_filename
 except ModuleNotFoundError:  # Direct execution: python scripts/generate_site.py
+    from generate_review import load_review_records
     from node_files import node_identity, node_sort_key, parse_node_filename
 
 REPOSITORY_URL = "https://github.com/ResistanceYX/idea-tree"
@@ -470,7 +472,188 @@ def render_acknowledgements(people: list[dict]) -> str:
     )
 
 
-def render_index(records: list[tuple[Path, dict]]) -> str:
+def searchable_text(value: object) -> str:
+    """Normalize public source text while preserving Latin word boundaries."""
+    if isinstance(value, list):
+        return "、".join(searchable_text(item) for item in value if searchable_text(item))
+    result = ""
+    for line in text(value).strip().splitlines():
+        result = join_soft(result, line)
+    return result.strip()
+
+
+def public_search_sections(
+    file: Path,
+    data: dict,
+    ref_to_file: dict[str, Path] | None = None,
+    ref_to_title: dict[str, str] | None = None,
+    review: dict | None = None,
+) -> list[dict]:
+    """Return only text actually allowed on the public detail page."""
+    ref_to_file = ref_to_file or {}
+    ref_to_title = ref_to_title or {}
+    node_number, node_id = node_identity(file, data)
+    page = f"nodes/{node_id}.html"
+    sections: list[dict] = []
+
+    def add(label: str, value: object, anchor: str = page) -> None:
+        content = searchable_text(value)
+        if content:
+            sections.append({"label": label, "anchor": anchor, "text": content})
+
+    status = text(data.get("复活状态"))
+    add(
+        "节点信息",
+        [
+            node_number,
+            f"#{node_number}",
+            data.get("标题", node_id),
+            node_id,
+            data.get("领域"),
+            data.get("子领域"),
+            data.get("档案类型"),
+            status,
+            data.get("创新类型"),
+            data.get("重启预算"),
+            data.get("审核日期"),
+            data.get("死因保质期"),
+            data.get("起草AI"),
+            data.get("审核人"),
+        ],
+    )
+    add("一句话摘要", data.get("一句话"))
+    boundary_label = "复活范围" if status in {"复活候选", "已复活"} else "结论边界"
+    add(boundary_label, data.get("结论边界"), f"{page}#scope")
+
+    for index, death in enumerate(data.get("死法", []) or [], start=1):
+        if not isinstance(death, dict):
+            continue
+        add(
+            f"死法{index} · {text(death.get('类型'))}",
+            [
+                death.get("类型"),
+                death.get("置信度"),
+                death.get("证据"),
+                death.get("推理") or death.get("分析"),
+                death.get("案例"),
+                death.get("备注"),
+            ],
+            f"{page}#death-{index}",
+        )
+
+    add("可拆零件", data.get("可拆零件"), f"{page}#parts")
+    add("商业及社会价值评估", data.get("商业及社会价值评估"), f"{page}#value")
+    demand = data.get("需求证据")
+    if isinstance(demand, dict):
+        add("需求证据记录类型", demand.get("类型"), f"{page}#demand")
+    add("节点备注", data.get("备注"), f"{page}#node-notes")
+
+    relation_text = []
+    for relation in data.get("相关节点", []) or []:
+        if not isinstance(relation, dict):
+            continue
+        target = text(relation.get("节点"))
+        target_file = ref_to_file.get(target)
+        target_title = ref_to_title.get(target, target)
+        if target_file:
+            target_number, _target_id = parse_node_filename(target_file)
+            target_title = f"#{target_number} · {target_title}"
+        relation_text.append([target_title, relation.get("关系"), relation.get("说明")])
+    add("相关节点", relation_text, f"{page}#relations")
+
+    review = review or {}
+    if review.get("复核状态") == "已复核":
+        add(
+            "最近复核",
+            [review.get("复核结论"), review.get("复核后日期")],
+            f"{page}#review-info",
+        )
+    history = review.get("履历") or []
+    if history:
+        history_text = [
+            [entry.get("日期"), entry.get("档案类型"), entry.get("复活状态"), entry.get("说明")]
+            for entry in history
+            if isinstance(entry, dict)
+        ]
+        add("复核履历", history_text, f"{page}#review-info")
+    return sections
+
+
+def render_recent_reviews(
+    records: list[tuple[Path, dict]],
+    reviews: dict[str, dict],
+) -> str:
+    entries = []
+    for file, data in records:
+        node_number, node_id = node_identity(file, data)
+        review = reviews.get(node_id, {})
+        reviewed_at = text(review.get("复核后日期"))
+        if review.get("复核状态") != "已复核" or not reviewed_at:
+            continue
+        entries.append(
+            {
+                "date": reviewed_at,
+                "number": node_number,
+                "id": node_id,
+                "title": text(data.get("标题", node_id)),
+                "conclusion": text(review.get("复核结论")),
+            }
+        )
+    if not entries:
+        return ""
+    entries.sort(key=lambda item: item["date"], reverse=True)
+    items = "".join(
+        f'<li><a href="nodes/{escape(item["id"])}.html#review-info">'
+        f'#{escape(item["number"])} · {escape(item["title"])}</a>'
+        f'<p>{escape(item["conclusion"])} · <time datetime="{escape(item["date"])}">{escape(item["date"])}</time></p></li>'
+        for item in entries[:5]
+    )
+    return (
+        '<section class="recent-reviews" aria-labelledby="recent-reviews-title">'
+        '<h2 id="recent-reviews-title">最近复核</h2>'
+        f'<ol>{items}</ol></section>'
+    )
+
+
+def render_review_details(review: dict | None) -> str:
+    review = review or {}
+    latest = ""
+    if review.get("复核状态") == "已复核":
+        reviewed_at = text(review.get("复核后日期"))
+        latest = (
+            '<div class="review-latest"><h3>最近复核</h3>'
+            f'<p>{escape(review.get("复核结论"))} · '
+            f'<time datetime="{escape(reviewed_at)}">{escape(reviewed_at)}</time></p></div>'
+        )
+    history = sorted(
+        (entry for entry in review.get("履历", []) or [] if isinstance(entry, dict)),
+        key=lambda entry: text(entry.get("日期")),
+    )
+    history_html = ""
+    if history:
+        items = "".join(
+            f'<li><time datetime="{escape(entry.get("日期"))}">{escape(entry.get("日期"))}</time>'
+            f'<strong>{escape(entry.get("档案类型"))} · {escape(entry.get("复活状态"))}</strong>'
+            f'<p>{escape(entry.get("说明"))}</p></li>'
+            for entry in history
+        )
+        history_html = (
+            f'<details class="review-history"><summary>复核履历（{len(history)}）</summary>'
+            f'<ol>{items}</ol></details>'
+        )
+    if not latest and not history_html:
+        return ""
+    return (
+        '<section class="content-section review-info" id="review-info">'
+        f'<h2>复核信息</h2>{latest}{history_html}</section>'
+    )
+
+
+def render_index(
+    records: list[tuple[Path, dict]],
+    reviews: dict[str, dict] | None = None,
+) -> str:
+    reviews = reviews or {}
     records = sorted(
         records,
         key=lambda record: (text(record[1].get("死因保质期")) or "9999-12-31", node_sort_key(record)),
@@ -528,7 +711,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
             if parts else ""
         )
         rows.append(
-            f"""<article class="record" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
+            f"""<article class="record" data-node-id="{escape(node_id)}" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
   <div class="record-main">
     <div class="record-title">
       <a href="nodes/{escape(node_id)}.html">{escape(title)}</a>
@@ -537,8 +720,9 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     <div class="record-domain">{escape(domain)}<br><span class="record-id">{escape(subdomain)}</span></div>
     <div class="record-deaths">{escape("、".join(types))}</div>
     <div class="record-status"><span class="archive-status">{archive_term(archive)}</span><span class="status-tag revival-tag {revival_class(status)}">{escape(status)}</span></div>
-    <div class="record-expiry">{escape(expiry)}</div>
+    <div class="record-expiry" data-expiry="{escape(expiry)}"><time class="expiry-date" datetime="{escape(expiry)}">{escape(expiry)}</time></div>
   </div>
+  <div class="search-match" hidden></div>
   <details class="record-preview">
     <summary>快速查看：一句话、推理与零件</summary>
     <p class="record-summary">{escape(one_line)}</p>
@@ -578,8 +762,9 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
     <form class="filters" id="filters" aria-label="检索节点" onsubmit="return false">
       <h2 id="filters-title" tabindex="-1">检索档案</h2>
       <div class="field">
-        <label for="search">标题、id或内容</label>
+        <label for="search">标题、编号、id或公开档案全文</label>
         <input id="search" type="search" placeholder="例如：巨头碾压、AI、开源" autocomplete="off">
+        <p class="search-index-status" id="search-index-status" role="status" hidden></p>
       </div>
       <div class="field">
         <label for="domain-filter">领域</label>
@@ -606,6 +791,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
       <h2 id="distribution-title">死法条目分布</h2>
       {''.join(distribution)}
     </section>
+    {render_recent_reviews(records, reviews)}
     <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
@@ -614,6 +800,7 @@ def render_index(records: list[tuple[Path, dict]]) -> str:
       <p class="result-count" id="result-count" aria-live="polite">显示 {len(records)} / {len(records)} 个节点</p>
       <a class="mobile-filter-link" href="#filters-title">筛选档案 ↓</a>
     </div>
+    <p class="sort-note">默认按死因保质期升序排列；同日期按永久编号升序排列。搜索和筛选不改变顺序。</p>
     {render_status_guide()}
     <div class="record-labels" aria-hidden="true"><span>节点／编号／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
     {''.join(rows)}
@@ -631,6 +818,7 @@ def render_detail(
     data: dict,
     ref_to_file: dict[str, Path],
     ref_to_title: dict[str, str] | None = None,
+    review: dict | None = None,
 ) -> str:
     ref_to_title = ref_to_title or {}
     node_number, node_id = node_identity(file, data)
@@ -651,9 +839,23 @@ def render_detail(
         ("起草AI", text(data.get("起草AI")), False),
         ("审核人", text(data.get("审核人")), False),
     ]
-    metadata_html = "".join(
-        f'<div><dt>{escape(label)}</dt><dd{(" class=\"mono\"" if mono else "")}>{escape(value)}</dd></div>'
-        for label, value, mono in metadata
+    metadata_parts = []
+    for label, value, mono in metadata:
+        if label == "死因保质期":
+            metadata_parts.append(
+                f'<div class="metadata-expiry" data-expiry="{escape(value)}"><dt>{escape(label)}</dt>'
+                f'<dd class="mono"><time class="expiry-date" datetime="{escape(value)}">{escape(value)}</time></dd></div>'
+            )
+        else:
+            metadata_parts.append(
+                f'<div><dt>{escape(label)}</dt><dd{(" class=\"mono\"" if mono else "")}>{escape(value)}</dd></div>'
+            )
+    metadata_html = "".join(metadata_parts)
+    boundary = text(data.get("结论边界")).strip()
+    boundary_label = "复活范围" if status in {"复活候选", "已复活"} else "结论边界"
+    boundary_html = (
+        f'<p class="scope-note" id="scope"><strong>{escape(boundary_label)}</strong>{escape(boundary)}</p>'
+        if boundary else ""
     )
 
     deaths_html = []
@@ -664,7 +866,7 @@ def render_detail(
         links_html = ""
         if links:
             items = "".join(
-                f'<li><a href="{escape(url)}" target="_blank" rel="noopener noreferrer">{escape(source_label(str(url), link_index))}</a></li>'
+                f'<li><a class="evidence-link" href="{escape(url)}" target="_blank" rel="noopener noreferrer">{escape(source_label(str(url), link_index))}</a></li>'
                 for link_index, url in enumerate(links, start=1)
             )
             links_html = f"<h4>证据链接</h4><ol class=\"evidence-list\">{items}</ol>"
@@ -701,8 +903,9 @@ def render_detail(
         target_file = ref_to_file.get(target)
         target_title = ref_to_title.get(target, target)
         if target_file:
-            _target_number, target_id = parse_node_filename(target_file)
-            target_html = f'<a href="{escape(target_id)}.html">{escape(target_title)}</a>'
+            target_number, target_id = parse_node_filename(target_file)
+            target_label = f"#{target_number} · {target_title}"
+            target_html = f'<a href="{escape(target_id)}.html">{escape(target_label)}</a>'
         else:
             target_html = escape(target_title)
         note = relation.get("说明")
@@ -714,16 +917,16 @@ def render_detail(
     extra_sections = []
     if data.get("商业及社会价值评估"):
         extra_sections.append(
-            f'<section class="content-section"><h2>商业及社会价值评估</h2><p class="prose">{escape(data["商业及社会价值评估"])}</p></section>'
+            f'<section class="content-section" id="value"><h2>商业及社会价值评估</h2><p class="prose">{escape(data["商业及社会价值评估"])}</p></section>'
         )
     demand = data.get("需求证据")
     if isinstance(demand, dict) and demand.get("类型"):
         extra_sections.append(
-            f'<section class="content-section"><h2>需求证据</h2><p class="prose">记录类型：{escape(demand.get("类型"))}。附件不通过静态站发布，请在仓库中按既有权限与边界查看。</p></section>'
+            f'<section class="content-section" id="demand"><h2>需求证据</h2><p class="prose">记录类型：{escape(demand.get("类型"))}。附件不通过静态站发布，请在仓库中按既有权限与边界查看。</p></section>'
         )
     if data.get("备注"):
         extra_sections.append(
-            f'<section class="content-section"><h2>节点备注</h2><p class="prose">{escape(data["备注"])}</p></section>'
+            f'<section class="content-section" id="node-notes"><h2>节点备注</h2><p class="prose">{escape(data["备注"])}</p></section>'
         )
 
     return "\n".join(
@@ -736,8 +939,10 @@ def render_detail(
     <h1>{escape(title)}</h1>
     <p class="detail-lede">{escape(one_line)}</p>
     <div class="badges"><span class="badge archive-tag">{escape(archive)}</span><span class="badge revival-tag {revival_class(status)}">{escape(status)}</span></div>
+    {boundary_html}
     <dl class="metadata">{metadata_html}</dl>
-    <a class="source-link" href="{REPOSITORY_URL}/blob/main/nodes/{escape(file.name)}" target="_blank" rel="noopener noreferrer">查看原始YAML ↗</a>
+    <a class="source-link no-print" href="{REPOSITORY_URL}/blob/main/nodes/{escape(file.name)}" target="_blank" rel="noopener noreferrer">查看原始YAML ↗</a>
+    <button class="print-button no-print" id="print-detail" type="button" hidden>打印／保存 PDF</button>
   </aside>
   <div class="detail-content">
     <section class="content-section">
@@ -751,9 +956,10 @@ def render_detail(
       <p class="notice">置信度表示当前证据与推理的可靠程度，不是失败概率。预审不得理解为已经发生的失败。启用脚本时，各死法默认收起，可逐条展开；通过死法锚点打开时会自动展开目标。</p>
       {''.join(deaths_html)}
     </section>
-    <section class="content-section"><h2>可拆零件</h2><ul class="parts-list">{parts_html}</ul></section>
+    <section class="content-section" id="parts"><h2>可拆零件</h2><ul class="parts-list">{parts_html}</ul></section>
     {''.join(extra_sections)}
-    {f'<section class="content-section"><h2>相关节点</h2><ul class="relations-list">{"".join(relations_html)}</ul></section>' if relations_html else ''}
+    {render_review_details(review)}
+    {f'<section class="content-section" id="relations"><h2>相关节点</h2><ul class="relations-list">{"".join(relations_html)}</ul></section>' if relations_html else ''}
   </div>
 </main>
 <script src="../assets/site.js" defer></script>""",
@@ -766,26 +972,27 @@ def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
     result = []
     for file, data in records:
         node_number, node_id = node_identity(file, data)
-        result.append(
-            {
-                "编号": node_number,
-                "id": node_id,
-                "标题": text(data.get("标题", node_id)),
-                "档案类型": text(data.get("档案类型")),
-                "复活状态": text(data.get("复活状态")),
-                "领域": text(data.get("领域")),
-                "子领域": text(data.get("子领域")),
-                "死法类型": death_types(data),
-                "审核日期": text(data.get("审核日期")),
-                "死因保质期": text(data.get("死因保质期")),
-                "相关节点": [
-                    {"节点": text(item.get("节点")), "关系": text(item.get("关系"))}
-                    for item in data.get("相关节点", []) or []
-                    if isinstance(item, dict)
-                ],
-                "页面": f"nodes/{node_id}.html",
-            }
-        )
+        item = {
+            "编号": node_number,
+            "id": node_id,
+            "标题": text(data.get("标题", node_id)),
+            "档案类型": text(data.get("档案类型")),
+            "复活状态": text(data.get("复活状态")),
+            "领域": text(data.get("领域")),
+            "子领域": text(data.get("子领域")),
+            "死法类型": death_types(data),
+            "审核日期": text(data.get("审核日期")),
+            "死因保质期": text(data.get("死因保质期")),
+            "相关节点": [
+                {"节点": text(item.get("节点")), "关系": text(item.get("关系"))}
+                for item in data.get("相关节点", []) or []
+                if isinstance(item, dict)
+            ],
+            "页面": f"nodes/{node_id}.html",
+        }
+        if "结论边界" in data:
+            item["结论边界"] = text(data.get("结论边界"))
+        result.append(item)
     return result
 
 
@@ -797,6 +1004,11 @@ def build_site(root: Path, output: Path) -> int:
     records = load_nodes(root)
     ref_to_file = {file.stem: file for file, data in records}
     ref_to_title = {file.stem: text(data.get("标题", node_identity(file, data)[1])) for file, data in records}
+    node_data = {node_identity(file, data)[1]: data for file, data in records}
+    reviews = (
+        load_review_records(root, set(node_data), node_data)
+        if (root / "review_records.yaml").is_file() else {}
+    )
     acknowledgements = parse_acknowledgements(root)
     assets = root / "site" / "assets"
     if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
@@ -808,17 +1020,33 @@ def build_site(root: Path, output: Path) -> int:
     (output / "data").mkdir()
     (output / "assets").mkdir()
 
-    (output / "index.html").write_text(render_index(records), encoding="utf-8")
+    (output / "index.html").write_text(render_index(records, reviews), encoding="utf-8")
     (output / "acknowledgements.html").write_text(
         render_acknowledgements(acknowledgements), encoding="utf-8"
     )
     for file, data in records:
         _node_number, node_id = node_identity(file, data)
         (output / "nodes" / f"{node_id}.html").write_text(
-            render_detail(file, data, ref_to_file, ref_to_title), encoding="utf-8"
+            render_detail(file, data, ref_to_file, ref_to_title, reviews.get(node_id)), encoding="utf-8"
         )
     (output / "data" / "nodes.json").write_text(
         json.dumps(public_node_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    search_index = {
+        node_identity(file, data)[1]: {
+            "sections": public_search_sections(
+                file,
+                data,
+                ref_to_file,
+                ref_to_title,
+                reviews.get(node_identity(file, data)[1]),
+            )
+        }
+        for file, data in records
+    }
+    (output / "data" / "search-index.json").write_text(
+        json.dumps(search_index, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     shutil.copy2(assets / "style.css", output / "assets" / "style.css")

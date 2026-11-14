@@ -19,7 +19,10 @@ except ModuleNotFoundError:  # Direct execution: python scripts/generate_review.
 
 REVIEW_STATUSES = {"待复核", "已复核", "暂缓"}
 REVIEW_CONCLUSIONS = {"维持原判", "调整死因", "调整置信度", "调整复活状态", "修复证据"}
-RECORD_FIELDS = {"复核状态", "复核结论", "复核后日期", "备注"}
+ARCHIVE_TYPES = {"预审", "验尸"}
+REVIVAL_STATUSES = {"死透", "复活候选", "已复活"}
+RECORD_FIELDS = {"复核状态", "复核结论", "复核后日期", "备注", "履历"}
+HISTORY_FIELDS = {"日期", "档案类型", "复活状态", "说明"}
 
 
 def markdown_cell(value: object) -> str:
@@ -66,7 +69,11 @@ def load_nodes(root: Path) -> list[tuple[Path, dict]]:
     return records
 
 
-def load_review_records(root: Path, known_ids: set[str]) -> dict[str, dict]:
+def load_review_records(
+    root: Path,
+    known_ids: set[str],
+    node_data: dict[str, dict] | None = None,
+) -> dict[str, dict]:
     path = root / "review_records.yaml"
     if not path.is_file():
         raise ValueError("review_records.yaml 不存在")
@@ -121,14 +128,54 @@ def load_review_records(root: Path, known_ids: set[str]) -> dict[str, dict]:
         if status == "暂缓" and not record.get("备注", "").strip():
             raise ValueError(f"{node_id} 暂缓时必须在备注中写明原因和下次检查条件")
 
+        history = record.get("履历")
+        if history is not None:
+            if not isinstance(history, list):
+                raise ValueError(f"{node_id} 的履历必须是数组")
+            seen_history: set[tuple[str, str, str]] = set()
+            for index, entry in enumerate(history, start=1):
+                location = f"{node_id} 的履历第{index}条"
+                if not isinstance(entry, dict):
+                    raise ValueError(f"{location}必须是映射")
+                unknown_history_fields = set(entry) - HISTORY_FIELDS
+                if unknown_history_fields:
+                    names = "、".join(sorted(str(field) for field in unknown_history_fields))
+                    raise ValueError(f"{location}存在未定义字段：{names}")
+                missing_fields = HISTORY_FIELDS - set(entry)
+                if missing_fields:
+                    names = "、".join(sorted(missing_fields))
+                    raise ValueError(f"{location}缺少字段：{names}")
+                entry_date = date_text(entry.get("日期"))
+                if not valid_date(entry.get("日期")):
+                    raise ValueError(f"{location}的日期必须是有效的 YYYY-MM-DD 日期")
+                if entry.get("档案类型") not in ARCHIVE_TYPES:
+                    raise ValueError(f"{location}的档案类型必须是预审或验尸")
+                if entry.get("复活状态") not in REVIVAL_STATUSES:
+                    raise ValueError(f"{location}的复活状态不合法")
+                if not isinstance(entry.get("说明"), str) or not entry["说明"].strip():
+                    raise ValueError(f"{location}的说明必须是非空字符串")
+                identity = (entry_date, entry["档案类型"], entry["复活状态"])
+                if identity in seen_history:
+                    raise ValueError(f"{node_id} 同一天同一状态变化的履历不得重复")
+                seen_history.add(identity)
+
+            if history and status == "已复核":
+                latest = max(history, key=lambda entry: date_text(entry["日期"]))
+                if date_text(latest["日期"]) != date_text(reviewed_at):
+                    raise ValueError(f"{node_id} 最新履历日期必须与复核后日期一致")
+                if node_data is not None:
+                    current = node_data[node_id]
+                    if latest["档案类型"] != current.get("档案类型") or latest["复活状态"] != current.get("复活状态"):
+                        raise ValueError(f"{node_id} 最新履历中的档案类型与复活状态必须与节点当前状态一致")
+
         validated[node_id] = record
     return validated
 
 
 def render_review(root: Path) -> str:
     nodes = load_nodes(root)
-    known_ids = {node_identity(file, data)[1] for file, data in nodes}
-    human_records = load_review_records(root, known_ids)
+    node_data = {node_identity(file, data)[1]: data for file, data in nodes}
+    human_records = load_review_records(root, set(node_data), node_data)
     nodes = sorted(
         nodes,
         key=lambda record: (

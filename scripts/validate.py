@@ -59,6 +59,7 @@ ALLOWED_TOP_FIELDS = set(REQUIRED_TOP_FIELDS) | {
     "商业及社会价值评估",
     "相关节点",
     "备注",
+    "结论边界",
 }
 ALLOWED_DEATH_FIELDS = {"类型", "证据", "推理", "分析", "案例", "证据链接", "置信度", "备注"}
 ALLOWED_RELATION_FIELDS = {"节点", "关系", "说明"}
@@ -191,6 +192,8 @@ def validate_repository(root: Path) -> dict[str, object]:
             error(location, "复活候选与已复活节点必须填写商业及社会价值评估")
         if value_assessment is not None and not nonempty_string(value_assessment):
             error(location, "商业及社会价值评估如填写则必须是非空字符串")
+        if "结论边界" in data and not nonempty_string(data.get("结论边界")):
+            error(location, "结论边界如填写则必须是非空字符串")
 
         demand = data.get("需求证据")
         if demand is not None:

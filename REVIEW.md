@@ -17,7 +17,7 @@
 
 ## 复核清单
 
-当前共29个正式节点：待复核29个，已复核0个，暂缓0个。
+当前共30个正式节点：待复核30个，已复核0个，暂缓0个。
 
 | 编号 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
 |---|---|---|---|---|---|---|---|
@@ -44,6 +44,7 @@
 | `0027` | [防水防油一次性手套](nodes/0027-water-oil-resistant-disposable-gloves.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0028` | [开源建筑图纸低级风险智能检测Agent](nodes/0028-open-source-building-drawing-risk-checker-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0029` | [开源裁判文书形式异常检测反馈Agent](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
+| `0030` | [开源家庭网络漏洞检查与修复辅助Agent](nodes/0030-open-source-home-network-vulnerability-repair-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0003` | [AI电子鼻（通用气味识别硬件创业）](nodes/0003-electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
 | `0008` | [AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
 | `0009` | [AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |

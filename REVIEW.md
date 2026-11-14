@@ -17,7 +17,7 @@
 
 ## 复核清单
 
-当前共34个正式节点：待复核34个，已复核0个，暂缓0个。
+当前共35个正式节点：待复核35个，已复核0个，暂缓0个。
 
 | 编号 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
 |---|---|---|---|---|---|---|---|
@@ -49,6 +49,7 @@
 | `0032` | [AI自助生成与使用表情包插件](nodes/0032-ai-generated-chat-sticker-plugin.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0033` | [开源古籍版本比对与校勘辅助Agent插件](nodes/0033-open-source-guji-collation-agent-plugin.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0034` | [开源知网论文全量扫描与科研诚信反馈Agent](nodes/0034-open-source-cnki-paper-integrity-feedback-agent.yaml) | 2026-11-15 | 2027-11-15 | 待复核 | — | — | — |
+| `0035` | [开源单文献学术评议Agent](nodes/0035-open-source-single-paper-academic-review-agent.yaml) | 2026-11-15 | 2027-11-15 | 待复核 | — | — | — |
 | `0003` | [AI电子鼻（通用气味识别硬件创业）](nodes/0003-electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
 | `0008` | [AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
 | `0009` | [AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |

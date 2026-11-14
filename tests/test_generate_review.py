@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
+
 from scripts.generate_review import generate_review, main, render_review, review_is_current
 
 
@@ -143,6 +145,61 @@ class ReviewGeneratorTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "原因和下次检查条件"):
             render_review(root)
+
+    def test_optional_history_is_validated_and_latest_entry_matches_current_state(self) -> None:
+        root = self.make_repo()
+        (root / "nodes" / "0001-test-node.yaml").write_text(
+            node_text("test-node", "测试节点", "2028-01-01"), encoding="utf-8"
+        )
+        record = {
+            "复核状态": "已复核",
+            "复核结论": "维持原判",
+            "复核后日期": "2026-02-01",
+            "履历": [
+                {
+                    "日期": "2026-01-01",
+                    "档案类型": "预审",
+                    "复活状态": "死透",
+                    "说明": "首次真实复核。",
+                },
+                {
+                    "日期": "2026-02-01",
+                    "档案类型": "预审",
+                    "复活状态": "死透",
+                    "说明": "第二次真实复核。",
+                },
+            ],
+        }
+        (root / "review_records.yaml").write_text(
+            yaml.safe_dump({"records": {"test-node": record}}, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        content = render_review(root)
+        self.assertIn("| 已复核 | 维持原判 | 2026-02-01 | — |", content)
+
+        invalid_cases = [
+            ("履历必须是数组", {"履历": {}}),
+            ("履历第1条必须是映射", {"履历": ["不是映射"]}),
+            ("存在未定义字段：额外", {"履历": [{**record["履历"][-1], "额外": "不允许"}]}),
+            ("缺少字段", {"履历": [{key: value for key, value in record["履历"][-1].items() if key != "说明"}]}),
+            ("日期必须是有效的 YYYY-MM-DD", {"履历": [{**record["履历"][-1], "日期": "2026-02-30"}]}),
+            ("档案类型必须是预审或验尸", {"履历": [{**record["履历"][-1], "档案类型": "未知"}]}),
+            ("复活状态不合法", {"履历": [{**record["履历"][-1], "复活状态": "未知"}]}),
+            ("说明必须是非空字符串", {"履历": [{**record["履历"][-1], "说明": "  "}]}),
+            ("履历不得重复", {"履历": [record["履历"][-1], record["履历"][-1]]}),
+            ("最新履历日期必须与复核后日期一致", {"履历": [record["履历"][0]]}),
+            ("最新履历中的档案类型与复活状态必须与节点当前状态一致", {"履历": [{**record["履历"][-1], "复活状态": "已复活"}]}),
+        ]
+        for message, override in invalid_cases:
+            with self.subTest(message=message):
+                invalid = {**record, **override}
+                (root / "review_records.yaml").write_text(
+                    yaml.safe_dump({"records": {"test-node": invalid}}, allow_unicode=True, sort_keys=False),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    render_review(root)
 
     def test_conflicting_conclusions_are_rejected(self) -> None:
         root = self.make_repo()

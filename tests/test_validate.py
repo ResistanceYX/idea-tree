@@ -84,6 +84,18 @@ id: broken-node
         self.assertIn("id 与文件名不一致", messages)
         self.assertIn("高置信度至少需要两个不同证据链接", messages)
 
+    def test_optional_conclusion_boundary_must_be_a_nonempty_string(self) -> None:
+        root = self.make_repo()
+        file = root / "nodes" / "0001-test-node.yaml"
+        file.write_text(node_text("test-node") + "结论边界: 仅限定当前完整路线。\n", encoding="utf-8")
+        self.assertEqual([], validate_repository(root)["errors"])
+
+        for value in ('""', "  ", "[缩围路线]", "123"):
+            with self.subTest(value=value):
+                file.write_text(node_text("test-node") + f"结论边界: {value}\n", encoding="utf-8")
+                result = validate_repository(root)
+                self.assertIn("结论边界如填写则必须是非空字符串", "\n".join(result["errors"]))
+
     def test_derived_id_requires_existing_parent(self) -> None:
         root = self.make_repo()
         parent = root / "nodes" / "0001-parent.yaml"

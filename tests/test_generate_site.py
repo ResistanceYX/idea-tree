@@ -208,7 +208,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('id="death-actions" hidden', content)
         self.assertIn('各死法默认收起，可逐条展开；通过死法锚点打开时会自动展开目标。', content)
         self.assertIn('src="../assets/site.js"', content)
-        self.assertIn('href="beta.html">乙节点</a>', content)
+        self.assertIn('href="beta.html">#0002 · 乙节点</a>', content)
         self.assertNotIn('href="beta.html">beta</a>', content)
         self.assertIn('href="../index.html"', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
@@ -359,6 +359,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())
         self.assertTrue((output / "data" / "nodes.json").is_file())
+        self.assertTrue((output / "data" / "search-index.json").is_file())
         self.assertTrue((output / ".nojekyll").is_file())
         self.assertFalse((output / "evidence").exists())
         self.assertFalse((output / "non-startup-tech").exists())
@@ -431,6 +432,145 @@ class SiteGeneratorTests(unittest.TestCase):
 
         self.assertNotIn('<script>alert("x")</script>', content)
         self.assertIn('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;', content)
+
+    def test_search_index_covers_public_detail_text_without_private_material(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"].append(
+            {
+                "类型": "理论证伪",
+                "证据": "后续死法的公开证据",
+                "分析": "后续死法包含独特词谄媚性顺从，且有多行\n  public Agent 文本。",
+                "案例": "后续死法公开案例",
+                "备注": "后续死法公开备注",
+                "置信度": "中",
+            }
+        )
+        data["需求证据"] = {
+            "类型": "访谈记录",
+            "说明": "PRIVATE-DEMAND-TEXT",
+            "附件": "evidence/PRIVATE-ATTACHMENT.xlsx",
+        }
+        alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        (root / "review_records.yaml").write_text(
+            """records:
+  alpha:
+    复核状态: 已复核
+    复核结论: 维持原判
+    复核后日期: 2026-02-01
+    备注: PRIVATE-REVIEW-NOTE
+    履历:
+      - 日期: 2026-02-01
+        档案类型: 预审
+        复活状态: 死透
+        说明: 真实公开复核说明
+""",
+            encoding="utf-8",
+        )
+
+        output = self.build(root)
+        payload = json.loads((output / "data" / "search-index.json").read_text(encoding="utf-8"))
+        sections = payload["alpha"]["sections"]
+        death_two = next(section for section in sections if section["label"] == "死法2 · 理论证伪")
+        serialized = json.dumps(payload, ensure_ascii=False)
+
+        self.assertEqual("nodes/alpha.html#death-2", death_two["anchor"])
+        self.assertIn("谄媚性顺从", death_two["text"])
+        self.assertIn("后续死法公开案例", death_two["text"])
+        self.assertIn("后续死法公开备注", death_two["text"])
+        self.assertIn("public Agent", death_two["text"])
+        self.assertIn("真实公开复核说明", serialized)
+        self.assertIn("nodes/alpha.html#review-info", serialized)
+        for private_text in ("PRIVATE-DEMAND-TEXT", "PRIVATE-ATTACHMENT", "PRIVATE-REVIEW-NOTE"):
+            self.assertNotIn(private_text, serialized)
+            self.assertNotIn(private_text, (output / "nodes" / "alpha.html").read_text(encoding="utf-8"))
+        self.assertIn("需求证据记录类型", serialized)
+        self.assertNotIn("evidence/", serialized)
+
+    def test_optional_conclusion_boundary_rendering_and_indexing(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点", status="已复活")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["结论边界"] = '仅复活<strong>缩围路线</strong>，独特词BOUNDARY-TOKEN。'
+
+        without_boundary = render_detail(alpha, {key: value for key, value in data.items() if key != "结论边界"}, {"0001-alpha": alpha})
+        content = render_detail(alpha, data, {"0001-alpha": alpha})
+        alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        output = self.build(root)
+        search_index = (output / "data" / "search-index.json").read_text(encoding="utf-8")
+        nodes_payload = json.loads((output / "data" / "nodes.json").read_text(encoding="utf-8"))
+
+        self.assertNotIn('class="scope-note"', without_boundary)
+        self.assertIn('<p class="scope-note" id="scope"><strong>复活范围</strong>', content)
+        self.assertIn('&lt;strong&gt;缩围路线&lt;/strong&gt;', content)
+        self.assertNotIn('仅复活<strong>', content)
+        self.assertIn("BOUNDARY-TOKEN", search_index)
+        self.assertIn("复活范围", search_index)
+        self.assertEqual(data["结论边界"], nodes_payload[0]["结论边界"])
+
+        data["复活状态"] = "死透"
+        dead_content = render_detail(alpha, data, {"0001-alpha": alpha})
+        self.assertIn("<strong>结论边界</strong>", dead_content)
+
+    def test_recent_reviews_and_detail_history_use_only_real_records(self) -> None:
+        root = self.make_repo()
+        records = [self.add_node(root, f"node-{index}", f"节点{index}") for index in range(1, 7)]
+        loaded = [(file, yaml.safe_load(file.read_text(encoding="utf-8"))) for file in records]
+        reviews = {
+            f"node-{index}": {
+                "复核状态": "已复核",
+                "复核结论": "维持原判",
+                "复核后日期": f"2026-02-{index:02d}",
+                "备注": "内部备注不得公开",
+            }
+            for index in range(1, 7)
+        }
+        reviews["node-6"]["履历"] = [
+            {
+                "日期": "2026-02-06",
+                "档案类型": "预审",
+                "复活状态": "死透",
+                "说明": "真实履历说明",
+            }
+        ]
+
+        empty_content = render_index(loaded)
+        empty_detail = render_detail(records[0], loaded[0][1], {"0001-node-1": records[0]})
+        content = render_index(loaded, reviews)
+        detail = render_detail(records[-1], loaded[-1][1], {"0006-node-6": records[-1]}, review=reviews["node-6"])
+
+        self.assertNotIn("最近复核", empty_content)
+        self.assertNotIn("复核信息", empty_detail)
+        self.assertEqual(content.count('<section class="recent-reviews"'), 1)
+        review_block = content.split('<section class="recent-reviews"', 1)[1].split("</section>", 1)[0]
+        self.assertEqual(review_block.count("<li>"), 5)
+        self.assertNotIn("#0001 · 节点1", review_block)
+        self.assertLess(review_block.index("#0006 · 节点6"), review_block.index("#0002 · 节点2"))
+        self.assertNotIn("内部备注不得公开", content)
+        self.assertIn('href="nodes/node-6.html#review-info"', review_block)
+        self.assertIn('<section class="content-section review-info" id="review-info">', detail)
+        self.assertIn('<details class="review-history"><summary>复核履历（1）</summary>', detail)
+        self.assertIn("真实履历说明", detail)
+        self.assertNotIn("内部备注不得公开", detail)
+
+    def test_expiry_attributes_sort_note_and_print_hooks_are_generated(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"][0]["证据链接"] = ["https://example.com/evidence"]
+
+        index = render_index([(alpha, data)])
+        detail = render_detail(alpha, data, {"0001-alpha": alpha})
+
+        self.assertIn('class="record-expiry" data-expiry="2028-01-01"', index)
+        self.assertIn('<time class="expiry-date" datetime="2028-01-01">2028-01-01</time>', index)
+        self.assertIn("默认按死因保质期升序排列；同日期按永久编号升序排列。搜索和筛选不改变顺序。", index)
+        self.assertIn('class="metadata-expiry" data-expiry="2028-01-01"', detail)
+        self.assertIn('<button class="print-button no-print" id="print-detail" type="button" hidden>', detail)
+        self.assertIn('<a class="evidence-link" href="https://example.com/evidence"', detail)
+        self.assertNotIn('class="expiry-status"', index, "提醒应由脚本按实际日期生成，而非静态写死")
+        self.assertNotIn('class="expiry-status"', detail)
 
     def test_output_directory_cannot_erase_repository_or_parent(self) -> None:
         root = self.make_repo()

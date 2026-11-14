@@ -283,3 +283,9 @@
 | 24 | G17上传故障复现与修复复核：污染标记及跨文件拼接定位、清理后逐文件差异核对、最小修复集合与干净替换包验证 | [scripts/validate.py](scripts/validate.py)、[scripts/generate_index.py](scripts/generate_index.py)、[README.md](README.md) |
 | 25 | 公开研究、验尸前提纠偏、预审＋已复活初稿与云端复检 | [nodes/0026-cellular-tablet-device.yaml](nodes/0026-cellular-tablet-device.yaml) |
 | 26 | README高质量示例评估：保留旧示例并追加0015机构部署与多源证据示例、0025开源实现与风险边界示例，链接及全量校验 | [README.md](README.md)、[nodes/0015-ai-scam-interception-agent.yaml](nodes/0015-ai-scam-interception-agent.yaml)、[nodes/0025-dafeiyu-cleaner.yaml](nodes/0025-dafeiyu-cleaner.yaml) |
+| 27 | G17收尾与G18后续拆分：Issue #11按实际完成范围修订、关闭复核，未实施的编号登记、退役防复用与历史审计事项拆分为Issue #12并复核 | [Issue #11](https://github.com/ResistanceYX/idea-tree/issues/11)、[Issue #12](https://github.com/ResistanceYX/idea-tree/issues/12) |
+| 28 | 主编提出原始需求；公开研究、初稿与云端复检 | [nodes/0027-water-oil-resistant-disposable-gloves.yaml](nodes/0027-water-oil-resistant-disposable-gloves.yaml) |
+| 29 | 公开研究、IFC／BIM结构化输入及能力边界收窄、初稿与云端复检 | [nodes/0028-open-source-building-drawing-risk-checker-agent.yaml](nodes/0028-open-source-building-drawing-risk-checker-agent.yaml) |
+| 30 | 公开研究、“低级错误判决”概念纠偏与形式异常检测范围收窄、初稿与云端复检 | [nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) |
+| 31 | 静态站第三轮改造：执行清单审议、公开全文搜索与定位、结论边界、真实复核履历、临期提醒、详情页打印、公开／内部信息隔离、43项测试及云端复检 | [README.md](README.md)、[review_records.yaml](review_records.yaml)、[scripts/validate.py](scripts/validate.py)、[scripts/generate_review.py](scripts/generate_review.py)、[scripts/generate_site.py](scripts/generate_site.py)、[site/assets/site.js](site/assets/site.js)、[site/assets/style.css](site/assets/style.css)、[tests/test_validate.py](tests/test_validate.py)、[tests/test_generate_review.py](tests/test_generate_review.py)、[tests/test_generate_site.py](tests/test_generate_site.py) |
+| 32 | Issue #10固定33项处理范围与清单外新增登记：规则修订、第10／12项状态同步、5个清单外已入库节点登记及云端复核 | [Issue #10](https://github.com/ResistanceYX/idea-tree/issues/10) |

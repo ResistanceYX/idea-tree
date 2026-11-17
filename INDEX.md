@@ -5,9 +5,9 @@
 
 ## 总览
 
-- 节点：38 个
-- 死法：199 条
-- 复活候选：11 个
+- 节点：40 个
+- 死法：211 条
+- 复活候选：13 个
 - 已复活：19 个
 
 ## 节点索引
@@ -52,6 +52,8 @@
 | `0036` | [基于多次多模态回传的超深海数据传输系统](nodes/0036-hadal-multimodal-store-forward-data-transfer.yaml) | `hadal-multimodal-store-forward-data-transfer` | 预审 | 复活候选 | 海洋科研装备 | 超深海观测数据回传、AUV数据骡与多模态通信 | 伪需求、钱算不平、信任成本、条件已死、执行人限制、理论证伪 | 高 | 2026-11-16 | 2027-11-16 |
 | `0037` | [超深海既有数据识别与未知候选搜索反馈Agent](nodes/0037-hadal-data-recognition-unknown-search-agent.yaml) | `hadal-data-recognition-unknown-search-agent` | 预审 | 已复活 | 海洋科研工具 | 超深海视觉识别、分布外候选与专家反馈 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-16 | 2027-11-16 |
 | `0038` | [授权系统攻击模拟与漏洞复核Agent](nodes/0038-authorized-attack-simulation-vulnerability-review-agent.yaml) | `authorized-attack-simulation-vulnerability-review-agent` | 预审 | 已复活 | 网络安全工具 | 授权渗透测试、漏洞验证与修复复测 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-17 | 2027-11-17 |
+| `0039` | [超深海多模态环境记录与时空对齐离线Agent](nodes/0039-hadal-multimodal-environment-record-alignment-offline-agent.yaml) | `hadal-multimodal-environment-record-alignment-offline-agent` | 预审 | 复活候选 | 海洋科研工具 | 超深海多模态数据治理、时空对齐与离线记录 | 伪需求、钱算不平、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-17 | 2027-11-17 |
+| `0040` | [超深海多模态观测总结与证据回链离线Agent](nodes/0040-hadal-multimodal-observation-summary-evidence-offline-agent.yaml) | `hadal-multimodal-observation-summary-evidence-offline-agent` | 预审 | 复活候选 | 海洋科研工具 | 超深海洋观测总结、证据回链与离线人机复核 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-17 | 2027-11-17 |
 
 ## 按死法类型统计
 
@@ -59,28 +61,28 @@
 
 | 死法类型 | 死法条数 | 涉及节点数 |
 |---|---:|---:|
-| 伪需求 | 16 | 16 |
-| 钱算不平 | 31 | 31 |
+| 伪需求 | 17 | 17 |
+| 钱算不平 | 33 | 33 |
 | 巨头碾压 | 18 | 18 |
-| 政策风险 | 24 | 24 |
+| 政策风险 | 25 | 25 |
 | 季节魔咒 | 3 | 3 |
 | 冷启动死锁 | 3 | 3 |
-| 信任成本 | 32 | 32 |
-| 条件已死 | 25 | 25 |
-| 执行人限制 | 32 | 32 |
-| 理论证伪 | 15 | 15 |
+| 信任成本 | 34 | 34 |
+| 条件已死 | 27 | 27 |
+| 执行人限制 | 34 | 34 |
+| 理论证伪 | 17 | 17 |
 
 ## 按复活状态统计
 
 | 复活状态 | 节点数 |
 |---|---:|
 | 死透 | 8 |
-| 复活候选 | 11 |
+| 复活候选 | 13 |
 | 已复活 | 19 |
 
 ## 按档案类型统计
 
 | 档案类型 | 节点数 |
 |---|---:|
-| 预审 | 37 |
+| 预审 | 39 |
 | 验尸 | 1 |

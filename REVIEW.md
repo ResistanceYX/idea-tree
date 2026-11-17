@@ -43,7 +43,6 @@
 | `0026` | [可插卡使用蜂窝数据的平板设备](nodes/0026-cellular-tablet-device.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0027` | [防水防油一次性手套](nodes/0027-water-oil-resistant-disposable-gloves.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0028` | [开源建筑图纸低级风险智能检测Agent](nodes/0028-open-source-building-drawing-risk-checker-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
-| `0029` | [开源裁判文书形式异常检测反馈Agent](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0030` | [开源家庭网络漏洞检查与修复辅助Agent](nodes/0030-open-source-home-network-vulnerability-repair-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0031` | [DNA健康信息与就医讨论辅助Agent](nodes/0031-dna-health-information-clinical-discussion-agent.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
 | `0032` | [AI自助生成与使用表情包插件](nodes/0032-ai-generated-chat-sticker-plugin.yaml) | 2026-11-14 | 2027-11-14 | 待复核 | — | — | — |
@@ -52,6 +51,7 @@
 | `0035` | [开源单文献学术评议Agent](nodes/0035-open-source-single-paper-academic-review-agent.yaml) | 2026-11-15 | 2027-11-15 | 待复核 | — | — | — |
 | `0036` | [基于多次多模态回传的超深海数据传输系统](nodes/0036-hadal-multimodal-store-forward-data-transfer.yaml) | 2026-11-16 | 2027-11-16 | 待复核 | — | — | — |
 | `0037` | [超深海既有数据识别与未知候选搜索反馈Agent](nodes/0037-hadal-data-recognition-unknown-search-agent.yaml) | 2026-11-16 | 2027-11-16 | 待复核 | — | — | — |
+| `0029` | [开源裁判文书形式异常检测反馈Agent](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |
 | `0038` | [授权系统攻击模拟与漏洞复核Agent](nodes/0038-authorized-attack-simulation-vulnerability-review-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |
 | `0039` | [超深海多模态环境记录与时空对齐离线Agent](nodes/0039-hadal-multimodal-environment-record-alignment-offline-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |
 | `0040` | [超深海多模态观测总结与证据回链离线Agent](nodes/0040-hadal-multimodal-observation-summary-evidence-offline-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |

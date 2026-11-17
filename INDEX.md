@@ -7,8 +7,8 @@
 
 - 节点：40 个
 - 死法：211 条
-- 复活候选：13 个
-- 已复活：19 个
+- 复活候选：12 个
+- 已复活：20 个
 
 ## 节点索引
 
@@ -42,7 +42,7 @@
 | `0026` | [可插卡使用蜂窝数据的平板设备](nodes/0026-cellular-tablet-device.yaml) | `cellular-tablet-device` | 预审 | 已复活 | 消费电子 | 蜂窝联网平板电脑 | 伪需求、钱算不平、巨头碾压、条件已死、执行人限制 | 高 | 2026-11-14 | 2027-11-14 |
 | `0027` | [防水防油一次性手套](nodes/0027-water-oil-resistant-disposable-gloves.yaml) | `water-oil-resistant-disposable-gloves` | 预审 | 已复活 | 食品接触用品 | 一次性防护手套 | 伪需求、钱算不平、信任成本、条件已死、执行人限制 | 高 | 2026-11-14 | 2027-11-14 |
 | `0028` | [开源建筑图纸低级风险智能检测Agent](nodes/0028-open-source-building-drawing-risk-checker-agent.yaml) | `open-source-building-drawing-risk-checker-agent` | 预审 | 已复活 | 建筑信息化 | 图纸与BIM质量检查 | 伪需求、钱算不平、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-14 | 2027-11-14 |
-| `0029` | [开源裁判文书形式异常检测反馈Agent](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | `open-source-judgment-formal-error-feedback-agent` | 预审 | 复活候选 | 法律科技 | 裁判文书质量检查与公众反馈 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-14 | 2027-11-14 |
+| `0029` | [开源裁判文书形式异常检测反馈Agent](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | `open-source-judgment-formal-error-feedback-agent` | 预审 | 已复活 | 法律科技 | 裁判文书质量检查与公众反馈 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-17 | 2027-11-17 |
 | `0030` | [开源家庭网络漏洞检查与修复辅助Agent](nodes/0030-open-source-home-network-vulnerability-repair-agent.yaml) | `open-source-home-network-vulnerability-repair-agent` | 预审 | 复活候选 | 网络安全 | 家庭网络与物联网设备安全 | 钱算不平、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-14 | 2027-11-14 |
 | `0031` | [DNA健康信息与就医讨论辅助Agent](nodes/0031-dna-health-information-clinical-discussion-agent.yaml) | `dna-health-information-clinical-discussion-agent` | 预审 | 复活候选 | 医疗健康 | 消费级基因检测解释与就医沟通 | 钱算不平、政策风险、信任成本、条件已死、执行人限制、理论证伪 | 中 | 2026-11-14 | 2027-11-14 |
 | `0032` | [AI自助生成与使用表情包插件](nodes/0032-ai-generated-chat-sticker-plugin.yaml) | `ai-generated-chat-sticker-plugin` | 预审 | 已复活 | 内容生成 | Agent表情生成与个性化表达工具 | 钱算不平、巨头碾压、信任成本、条件已死、执行人限制 | 低 | 2026-11-14 | 2027-11-14 |
@@ -77,8 +77,8 @@
 | 复活状态 | 节点数 |
 |---|---:|
 | 死透 | 8 |
-| 复活候选 | 13 |
-| 已复活 | 19 |
+| 复活候选 | 12 |
+| 已复活 | 20 |
 
 ## 按档案类型统计
 

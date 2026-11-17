@@ -11,6 +11,7 @@ on:
       - "site/**"
       - "tests/test_generate_site.py"
       - ".github/workflows/pages.yml"
+      - "review_records.yaml"
   pull_request:
     paths:
       - "nodes/**"
@@ -20,6 +21,7 @@ on:
       - "site/**"
       - "tests/test_generate_site.py"
       - ".github/workflows/pages.yml"
+      - "review_records.yaml"
   workflow_dispatch:
 
 permissions:

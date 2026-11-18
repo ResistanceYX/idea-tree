@@ -284,15 +284,7 @@ REVIVAL_DEFINITIONS = {
 
 
 def archive_term(archive: str) -> str:
-    tag = f'<span class="status-tag archive-tag">{escape(archive)}</span>'
-    definition = ARCHIVE_DEFINITIONS.get(archive)
-    if not definition:
-        return tag
-    return (
-        f'<span class="archive-term">{tag}<details class="term-tip">'
-        f'<summary aria-label="了解{escape(archive)}">?</summary>'
-        f'<p>{escape(definition)}</p></details></span>'
-    )
+    return f'<span class="status-tag archive-tag">{escape(archive)}</span>'
 
 
 def reasoning_preview(value: object, limit: int = 240) -> str:
@@ -480,6 +472,29 @@ def searchable_text(value: object) -> str:
     for line in text(value).strip().splitlines():
         result = join_soft(result, line)
     return result.strip()
+
+
+def basic_search_text(file: Path, data: dict) -> str:
+    """Return compact fallback-search text, not full detail prose."""
+    node_number, node_id = node_identity(file, data)
+    values = [
+        node_number,
+        f"#{node_number}",
+        data.get("标题", node_id),
+        node_id,
+        data.get("领域"),
+        data.get("子领域"),
+        " ".join(death_types(data)),
+        data.get("复活状态"),
+        data.get("档案类型"),
+        data.get("一句话"),
+    ]
+    values.extend(data.get("可拆零件", []) or [])
+    return " ".join(
+        normalized
+        for value in values
+        if (normalized := searchable_text(value))
+    )
 
 
 def public_search_sections(
@@ -696,9 +711,7 @@ def render_index(
         deaths = [death for death in data.get("死法", []) if isinstance(death, dict)]
         first_reasoning = text(deaths[0].get("推理") or deaths[0].get("分析")) if deaths else ""
         parts = [text(part) for part in data.get("可拆零件", []) or []]
-        search = " ".join(
-            (node_number, f"#{node_number}", title, node_id, domain, subdomain, " ".join(types), status, archive, one_line, first_reasoning, " ".join(parts))
-        )
+        search = basic_search_text(file, data)
         reasoning_html = (
             f'<div class="record-reasoning"><strong>第一条推理／分析</strong>'
             f'<p>{escape(reasoning_preview(first_reasoning))}</p></div>'
@@ -770,20 +783,25 @@ def render_index(
         <label for="domain-filter">领域</label>
         <select id="domain-filter">{select_options(domains, '全部领域')}</select>
       </div>
-      <fieldset class="field death-filter-group">
-        <legend>死法类型（多选，满足任一）</legend>
-        <div class="death-filter-options">
-          {''.join(f'<label class="check-option"><input type="checkbox" name="death-filter" value="{escape(item)}"><span>{escape(item)}</span></label>' for item in present_deaths)}
+      <details class="advanced-filters" id="advanced-filters" open>
+        <summary>更多筛选</summary>
+        <div class="advanced-filters-body">
+          <fieldset class="field death-filter-group">
+            <legend>死法类型（多选，满足任一）</legend>
+            <div class="death-filter-options">
+              {''.join(f'<label class="check-option"><input type="checkbox" name="death-filter" value="{escape(item)}"><span>{escape(item)}</span></label>' for item in present_deaths)}
+            </div>
+          </fieldset>
+          <div class="field">
+            <label for="status-filter">复活状态</label>
+            <select id="status-filter">{select_options(list(REVIVAL_STATUSES), '全部状态')}</select>
+          </div>
+          <div class="field">
+            <label for="archive-filter">档案类型</label>
+            <select id="archive-filter">{select_options(list(ARCHIVE_TYPES), '全部类型')}</select>
+          </div>
         </div>
-      </fieldset>
-      <div class="field">
-        <label for="status-filter">复活状态</label>
-        <select id="status-filter">{select_options(list(REVIVAL_STATUSES), '全部状态')}</select>
-      </div>
-      <div class="field">
-        <label for="archive-filter">档案类型</label>
-        <select id="archive-filter">{select_options(list(ARCHIVE_TYPES), '全部类型')}</select>
-      </div>
+      </details>
       <button class="reset-button" id="reset-filters" type="button" disabled>清除筛选</button>
       <a class="mobile-filter-link" id="filter-results-link" href="#catalog-title" aria-label="查看 {len(records)} 个筛选结果并返回节点列表">查看 {len(records)} 个结果 ↑</a>
     </form>
@@ -798,7 +816,6 @@ def render_index(
     <div class="catalog-head">
       <h2 id="catalog-title" tabindex="-1">节点索引</h2>
       <p class="result-count" id="result-count" aria-live="polite">显示 {len(records)} / {len(records)} 个节点</p>
-      <a class="mobile-filter-link" href="#filters-title">筛选档案 ↓</a>
     </div>
     <p class="sort-note">默认按死因保质期升序排列；同日期按永久编号升序排列。搜索和筛选不改变顺序。</p>
     {render_status_guide()}
@@ -851,7 +868,7 @@ def render_detail(
                 f'<div><dt>{escape(label)}</dt><dd{(" class=\"mono\"" if mono else "")}>{escape(value)}</dd></div>'
             )
     metadata_html = "".join(metadata_parts)
-    boundary = text(data.get("结论边界")).strip()
+    boundary = searchable_text(data.get("结论边界"))
     boundary_label = "复活范围" if status in {"复活候选", "已复活"} else "结论边界"
     boundary_html = (
         f'<p class="scope-note" id="scope"><strong>{escape(boundary_label)}</strong>{escape(boundary)}</p>'
@@ -991,7 +1008,7 @@ def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
             "页面": f"nodes/{node_id}.html",
         }
         if "结论边界" in data:
-            item["结论边界"] = text(data.get("结论边界"))
+            item["结论边界"] = searchable_text(data.get("结论边界"))
         result.append(item)
     return result
 

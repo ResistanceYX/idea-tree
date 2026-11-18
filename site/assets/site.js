@@ -2,6 +2,20 @@
   const normalized = (value) => String(value || '').trim().toLocaleLowerCase();
   let syncDeathControls = () => {};
 
+  function initAdvancedFilters() {
+    const panel = document.querySelector('#advanced-filters');
+    if (!panel) return;
+
+    const compact = window.matchMedia('(max-width: 1099px)');
+    const syncDisclosure = (query) => {
+      panel.open = !query.matches;
+    };
+
+    syncDisclosure(compact);
+    if (compact.addEventListener) compact.addEventListener('change', syncDisclosure);
+    else compact.addListener(syncDisclosure);
+  }
+
   function initFilters() {
     const search = document.querySelector('#search');
     if (!search) return;
@@ -45,7 +59,7 @@
           || right.occurrences - left.occurrences
           || left.order - right.order
         ))
-        .slice(0, 2);
+        .slice(0, 1);
     }
 
     function makeExcerpt(content, query) {
@@ -330,6 +344,7 @@
     button.hidden = false;
   }
 
+  initAdvancedFilters();
   initFilters();
   initSectionJumps();
   initDeathSections();

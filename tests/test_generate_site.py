@@ -125,10 +125,17 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('<span>死透<strong>1</strong></span>', content)
         self.assertIn('<span>复活候选<strong>1</strong></span>', content)
         self.assertIn('<span>已复活<strong>0</strong></span>', content)
-        self.assertIn('id="domain-filter"', content)
+        self.assertEqual(content.count('id="search"'), 1)
+        self.assertEqual(content.count('id="domain-filter"'), 1)
+        self.assertEqual(content.count('id="filters"'), 1)
         self.assertIn('name="death-filter" value="政策风险"', content)
         self.assertIn('id="status-filter"', content)
         self.assertIn('id="archive-filter"', content)
+        self.assertIn('<details class="advanced-filters" id="advanced-filters" open>', content)
+        self.assertIn('<summary>更多筛选</summary>', content)
+        self.assertLess(content.index('id="domain-filter"'), content.index('id="advanced-filters"'))
+        self.assertLess(content.index('id="advanced-filters"'), content.index('id="reset-filters"'))
+        self.assertLess(content.index('id="reset-filters"'), content.index('id="filter-results-link"'))
         self.assertIn('data-domain="测试领域"', content)
         self.assertIn('data-deaths="政策风险"', content)
         self.assertIn('data-status="复活候选"', content)
@@ -138,12 +145,17 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('第一条推理／分析', content)
         self.assertIn('仅用于测试静态站生成', content)
         self.assertIn('可拆零件', content)
-        self.assertIn('了解预审', content)
+        self.assertIn('<span class="status-tag archive-tag">预审</span>', content)
+        self.assertNotIn('<details class="term-tip">', content)
+        self.assertEqual(content.count('<details class="status-guide">'), 1)
+        self.assertIn('基于公开证据与推演的事前判断', content)
+        self.assertIn('核心条件已有证据支持发生翻案', content)
         self.assertIn('<h2 id="filters-title" tabindex="-1">检索档案</h2>', content)
         self.assertIn('<h2 id="catalog-title" tabindex="-1">节点索引</h2>', content)
         self.assertIn('死法类型（多选，满足任一）', content)
         self.assertIn('id="filter-results-link"', content)
         self.assertIn('查看 2 个结果 ↑', content)
+        self.assertNotIn('>筛选档案 ↓</a>', content)
         self.assertIn('class="status-guide"', content)
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
         self.assertIn('href="acknowledgements.html"', content)
@@ -167,8 +179,26 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertNotIn("零件四", preview)
         self.assertIn("共 5 个零件，完整清单见完整档案。", preview)
         self.assertNotIn("…", preview)
-        self.assertIn("第二个完整论点", content, "全文检索数据不应被预览截断破坏")
+        self.assertNotIn("第二个完整论点", content, "首页基础搜索不再重复携带完整推理")
         self.assertIn("零件五", content)
+
+    def test_basic_search_excludes_reasoning_but_full_index_preserves_it(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["死法"][0]["分析"] = "首句用于快速查看。后续独特论证FULL-REASONING-TOKEN。"
+        alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+        index = render_index([(alpha, data)])
+        output = self.build(root)
+        full_index = (output / "data" / "search-index.json").read_text(encoding="utf-8")
+
+        self.assertIn("首句用于快速查看", index)
+        self.assertNotIn("FULL-REASONING-TOKEN", index)
+        self.assertIn("FULL-REASONING-TOKEN", full_index)
+        self.assertIn('id="search"', index)
+        for basic_text in ("#0001", "甲节点", "alpha", "测试领域", "测试子领域", "伪需求", "死透", "预审", "用于验证公开静态站的测试节点", "测试零件"):
+            self.assertIn(basic_text, index)
 
     def test_reasoning_preview_preserves_short_text_and_shortens_long_sentence(self) -> None:
         self.assertEqual(reasoning_preview("短内容，没有句末标点"), "短内容，没有句末标点")
@@ -512,6 +542,30 @@ class SiteGeneratorTests(unittest.TestCase):
         data["复活状态"] = "死透"
         dead_content = render_detail(alpha, data, {"0001-alpha": alpha})
         self.assertIn("<strong>结论边界</strong>", dead_content)
+
+    def test_boundary_joins_soft_lines_consistently(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点", status="已复活")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["结论边界"] = (
+            "仅复活multi\n"
+            "  Agent工作流，覆盖解析、\n"
+            "  结构化批评。\n"
+        )
+        expected = "仅复活multi Agent工作流，覆盖解析、结构化批评。"
+        alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+        detail = render_detail(alpha, data, {"0001-alpha": alpha})
+        blank_detail = render_detail(alpha, {**data, "结论边界": " \n  "}, {"0001-alpha": alpha})
+        output = self.build(root)
+        nodes = json.loads((output / "data" / "nodes.json").read_text(encoding="utf-8"))
+        search = (output / "data" / "search-index.json").read_text(encoding="utf-8")
+
+        self.assertIn(expected, detail)
+        self.assertNotIn("解析、 结构化", detail)
+        self.assertNotIn('class="scope-note"', blank_detail)
+        self.assertEqual(expected, nodes[0]["结论边界"])
+        self.assertIn(expected, search)
 
     def test_recent_reviews_and_detail_history_use_only_real_records(self) -> None:
         root = self.make_repo()

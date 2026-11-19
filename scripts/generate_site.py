@@ -339,17 +339,10 @@ def render_status_guide() -> str:
 
 
 def parse_acknowledgements(root: Path) -> list[dict]:
-    readme = root / "README.md"
-    if not readme.is_file():
+    source = root / "ACKNOWLEDGEMENTS.md"
+    if not source.is_file():
         return []
-    content = readme.read_text(encoding="utf-8")
-    marker = re.search(r"^##\s+特别鸣谢\s*$", content, flags=re.MULTILINE)
-    if not marker:
-        return []
-    section = content[marker.end():]
-    next_heading = re.search(r"^##\s+", section, flags=re.MULTILINE)
-    if next_heading:
-        section = section[:next_heading.start()]
+    section = source.read_text(encoding="utf-8")
 
     people: list[dict] = []
     current: dict | None = None
@@ -443,7 +436,7 @@ def render_acknowledgements(people: list[dict]) -> str:
         )
 
     if not sections:
-        sections.append('<p class="empty-state">README中暂无可公开展示的鸣谢记录。</p>')
+        sections.append('<p class="empty-state">ACKNOWLEDGEMENTS.md中暂无可公开展示的鸣谢记录。</p>')
     return "\n".join(
         (
             page_head("特别鸣谢", "idea-tree项目AI助手及其公开工作记录。"),
@@ -454,8 +447,8 @@ def render_acknowledgements(people: list[dict]) -> str:
     <h1>特别鸣谢</h1>
     <p class="detail-lede">记录每一位AI助手在项目中的工作，也记录人类审核、接续与协作留下的轨迹。</p>
     <nav class="ack-nav" aria-label="鸣谢名单"><ol>{navigation}</ol></nav>
-    <p class="ack-source">本页由README“特别鸣谢”章节生成；私人证据附件、储备区及备份材料不在此发布。</p>
-    <a class="source-link" href="{REPOSITORY_URL}/blob/main/README.md#特别鸣谢" target="_blank" rel="noopener noreferrer">查看README原始记录 ↗</a>
+    <p class="ack-source">本页由ACKNOWLEDGEMENTS.md生成；私人证据附件、储备区及备份材料不在此发布。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/blob/main/ACKNOWLEDGEMENTS.md" target="_blank" rel="noopener noreferrer">查看原始记录 ↗</a>
   </aside>
   <div class="acknowledgements-content">{''.join(sections)}</div>
 </main>''',

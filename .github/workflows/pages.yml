@@ -6,6 +6,7 @@ on:
     paths:
       - "nodes/**"
       - "README.md"
+      - "ACKNOWLEDGEMENTS.md"
       - "scripts/generate_site.py"
       - "scripts/node_files.py"
       - "site/**"
@@ -16,6 +17,7 @@ on:
     paths:
       - "nodes/**"
       - "README.md"
+      - "ACKNOWLEDGEMENTS.md"
       - "scripts/generate_site.py"
       - "scripts/node_files.py"
       - "site/**"

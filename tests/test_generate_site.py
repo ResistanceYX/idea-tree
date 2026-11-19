@@ -81,6 +81,13 @@ class SiteGeneratorTests(unittest.TestCase):
 
 ## 特别鸣谢
 
+完整记录见 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)。
+""",
+            encoding="utf-8",
+        )
+        (root / "ACKNOWLEDGEMENTS.md").write_text(
+            """# 特别鸣谢
+
 **测试助手**：用于验证鸣谢页生成
 - 模型：测试模型
 - 休眠时间：未知
@@ -355,9 +362,11 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertEqual(len(people[0]["works"]), 1)
         self.assertIn('href="#assistant-1"', content)
         self.assertIn("测试模型", content)
+        self.assertIn("本页由ACKNOWLEDGEMENTS.md生成", content)
+        self.assertIn("/blob/main/ACKNOWLEDGEMENTS.md", content)
         self.assertNotIn("evidence/", content)
         self.assertNotIn("non-startup-tech/", content)
-        (root / "README.md").unlink()
+        (root / "ACKNOWLEDGEMENTS.md").unlink()
         self.assertEqual(parse_acknowledgements(root), [])
 
     def test_no_script_detail_leaves_first_two_deaths_open(self) -> None:

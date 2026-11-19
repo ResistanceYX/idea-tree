@@ -17,7 +17,7 @@
 
 ## 复核清单
 
-当前共41个正式节点：待复核39个，已复核2个，暂缓0个。
+当前共42个正式节点：待复核40个，已复核2个，暂缓0个。
 
 | 编号 | 节点 | 审核日期 | 死因保质期 | 复核状态 | 复核结论 | 复核后日期 | 备注 |
 |---|---|---|---|---|---|---|---|
@@ -56,6 +56,7 @@
 | `0039` | [超深海多模态环境记录与时空对齐离线Agent](nodes/0039-hadal-multimodal-environment-record-alignment-offline-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |
 | `0040` | [超深海多模态观测总结与证据回链离线Agent](nodes/0040-hadal-multimodal-observation-summary-evidence-offline-agent.yaml) | 2026-11-17 | 2027-11-17 | 待复核 | — | — | — |
 | `0041` | [多传感器识别与激光自动灭蚊器](nodes/0041-multisensor-laser-mosquito-control.yaml) | 2026-11-20 | 2027-11-20 | 待复核 | — | — | — |
+| `0042` | [三甲医院诊疗档案区域统一系统](nodes/0042-tertiary-hospital-clinical-record-interoperability.yaml) | 2026-11-20 | 2027-11-20 | 待复核 | — | — | — |
 | `0003` | [AI电子鼻（通用气味识别硬件创业）](nodes/0003-electronic-nose-ai.yaml) | 2026-10-29 | 2028-01-01 | 待复核 | — | — | — |
 | `0008` | [AI游戏修改器及其平台](nodes/0008-ai-game-modifier-platform.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |
 | `0009` | [AI生成红色题材中小体量视觉小说](nodes/0009-ai-red-visual-novel.yaml) | 2026-11-05 | 2028-11-05 | 待复核 | — | — | — |

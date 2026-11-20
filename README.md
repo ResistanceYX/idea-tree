@@ -32,7 +32,9 @@
 - **工作方式**：AI初稿，人类审核定案。
 - **全量索引**：[INDEX.md](INDEX.md)（由节点自动生成的检索目录与死因统计，请勿手工维护节点数据）。
 - **公开静态索引站**：[idea-tree 静态站](https://resistanceyx.github.io/idea-tree/)（由 `nodes/*.yaml` 自动生成，支持检索、组合筛选与单节点档案页；通过
-   GitHub Pages 工作流更新）。
+  GitHub Pages 工作流更新）。
+- **简易实现仓库**：[IMPLEMENTATIONS.md](IMPLEMENTATIONS.md)（登记与正式节点对应的独立实现仓库及其实现范围；仓库名统一使用节点带编号文件名主体`<编号>-<id>`，
+  登记不代表节点目标已完整实现）。
 - **离线备份与恢复**：[BACKUP.md](BACKUP.md)（月度U盘备份的范围、执行记录与恢复方法）。
 - **死因保质期复核**：[REVIEW.md](REVIEW.md)（由节点与人工复核记录自动生成；新节点自动进入待复核清单，复核结论写入[review_records.yaml](review_records.yaml)，
   请勿手工编辑表格）。

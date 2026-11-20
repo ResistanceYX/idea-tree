@@ -457,6 +457,125 @@ def render_acknowledgements(people: list[dict]) -> str:
     )
 
 
+def parse_implementations(root: Path) -> list[dict]:
+    """Read the public repository registry without duplicating its data."""
+    source = root / "IMPLEMENTATIONS.md"
+    if not source.is_file():
+        return []
+
+    entries: list[dict] = []
+    in_registry = False
+    for line_number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = line.strip()
+        if stripped == "## 仓库清单":
+            in_registry = True
+            continue
+        if in_registry and stripped.startswith("## "):
+            break
+        if not in_registry or not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) != 3:
+            raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行必须是三列表格")
+        if cells[0] == "对应节点" or all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+            continue
+
+        parsed_cells = []
+        for cell in cells[:2]:
+            match = re.fullmatch(r"\[([^\]]+)\]\(([^)]+)\)", cell)
+            if not match:
+                raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行的节点和仓库必须使用Markdown链接")
+            parsed_cells.append((match.group(1).strip(), match.group(2).strip()))
+        (node_label, node_target), (repository_name, repository_url) = parsed_cells
+        normalized = node_target.lstrip("./")
+        if normalized.startswith(("evidence/", "non-startup-tech/")):
+            continue
+        node_match = re.fullmatch(r"nodes/(\d{4})-([a-z0-9][a-z0-9-]*)\.yaml", normalized)
+        if not node_match:
+            raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行的节点链接不符合正式节点路径")
+        if not (root / normalized).is_file():
+            raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行指向不存在的节点：{normalized}")
+
+        number, node_id = node_match.groups()
+        file_stem = f"{number}-{node_id}"
+        repository_url = repository_url.rstrip("/")
+        parsed_repository = urlparse(repository_url)
+        if parsed_repository.scheme != "https" or not parsed_repository.netloc:
+            raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行的实现仓库必须使用HTTPS链接")
+        if repository_name != file_stem or not repository_url.endswith(f"/{file_stem}"):
+            raise ValueError(f"IMPLEMENTATIONS.md第{line_number}行的仓库名必须等于{file_stem}")
+
+        entries.append(
+            {
+                "number": number,
+                "id": node_id,
+                "title": re.sub(r"^\d{4}\s*", "", node_label),
+                "repository": repository_name,
+                "url": repository_url,
+                "scope": cells[2],
+            }
+        )
+    return entries
+
+
+def render_implementations(implementations: list[dict]) -> str:
+    entries = sorted(implementations, key=lambda item: item["number"])
+    navigation = "".join(
+        f'<li><a href="#implementation-{escape(item["number"])}">#{escape(item["number"])} · {escape(item["title"])}</a></li>'
+        for item in entries
+    )
+    rows = "".join(
+        f'''<li class="implementation-entry" id="implementation-{escape(item["number"])}">
+  <div class="implementation-node">
+    <a href="nodes/{escape(item["id"])}.html">#{escape(item["number"])} · {escape(item["title"])}</a>
+    <p class="implementation-id">{escape(item["id"])}</p>
+  </div>
+  <div class="implementation-repository">
+    <span class="implementation-field-label">实现仓库</span>
+    <a href="{escape(item["url"])}" target="_blank" rel="noopener noreferrer">{escape(item["repository"])} ↗</a>
+  </div>
+  <p class="implementation-scope"><span class="implementation-field-label">当前范围与边界</span>{escape(item["scope"])}</p>
+</li>'''
+        for item in entries
+    )
+    if entries:
+        registry = f'''<section class="implementation-registry" aria-labelledby="implementation-list-title">
+  <div class="catalog-head">
+    <h2 id="implementation-list-title">仓库清单</h2>
+    <p class="result-count">共 {len(entries)} 个登记仓库</p>
+  </div>
+  <p class="sort-note">按正式节点永久编号排列。范围说明来自登记文档，具体测试与复现步骤以实现仓库自身记录为准。</p>
+  <div class="implementation-labels" aria-hidden="true"><span>对应节点</span><span>实现仓库</span><span>当前范围与边界</span></div>
+  <ol class="implementation-list">{rows}</ol>
+</section>'''
+    else:
+        registry = '<p class="empty-state">IMPLEMENTATIONS.md中暂无可公开展示的实现仓库。</p>'
+
+    navigation_html = (
+        f'<nav class="ack-nav implementation-nav" aria-label="实现仓库清单"><ol>{navigation}</ol></nav>'
+        if entries else ""
+    )
+    return "\n".join(
+        (
+            page_head("简易实现仓库", "idea-tree正式节点对应的独立实现仓库及其实现范围。"),
+            page_header(detail=True),
+            f'''<main id="main-content" class="shell acknowledgements-layout implementations-layout">
+  <aside class="acknowledgements-aside implementations-aside">
+    <p class="kicker">Implementations / verified scope</p>
+    <h1>简易实现仓库</h1>
+    <p class="detail-lede">登记正式节点对应的独立实现，以及当前真正覆盖的功能与边界。</p>
+    <p class="definition">仓库名与节点带编号文件名主体一致：<code>&lt;编号&gt;-&lt;id&gt;</code>。登记不等于完整实现，也不自动改变节点结论。</p>
+    {navigation_html}
+    <p class="ack-source">本页由IMPLEMENTATIONS.md生成；不复制实现仓库代码、私人附件、储备区或备份材料。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/blob/main/IMPLEMENTATIONS.md" target="_blank" rel="noopener noreferrer">查看原始登记 ↗</a>
+  </aside>
+  <div class="implementations-content">{registry}</div>
+</main>''',
+            page_footer(),
+        )
+    )
+
+
 def searchable_text(value: object) -> str:
     """Normalize public source text while preserving Latin word boundaries."""
     if isinstance(value, list):
@@ -804,6 +923,7 @@ def render_index(
     </section>
     {render_recent_reviews(records, reviews)}
     <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
+    <a class="acknowledgements-link implementations-link" href="implementations.html"><span>简易实现仓库</span><span>查看节点对应的实现与边界 →</span></a>
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
     <div class="catalog-head">
@@ -1020,6 +1140,7 @@ def build_site(root: Path, output: Path) -> int:
         if (root / "review_records.yaml").is_file() else {}
     )
     acknowledgements = parse_acknowledgements(root)
+    implementations = parse_implementations(root)
     assets = root / "site" / "assets"
     if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
         raise ValueError("site/assets/ 缺少 style.css 或 site.js")
@@ -1033,6 +1154,9 @@ def build_site(root: Path, output: Path) -> int:
     (output / "index.html").write_text(render_index(records, reviews), encoding="utf-8")
     (output / "acknowledgements.html").write_text(
         render_acknowledgements(acknowledgements), encoding="utf-8"
+    )
+    (output / "implementations.html").write_text(
+        render_implementations(implementations), encoding="utf-8"
     )
     for file, data in records:
         _node_number, node_id = node_identity(file, data)

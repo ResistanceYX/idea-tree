@@ -14,10 +14,12 @@ from scripts.generate_site import (
     join_soft,
     load_nodes,
     parse_acknowledgements,
+    parse_implementations,
     parse_prose,
     reasoning_preview,
     render_acknowledgements,
     render_detail,
+    render_implementations,
     render_index,
     render_prose,
 )
@@ -101,6 +103,19 @@ class SiteGeneratorTests(unittest.TestCase):
 """,
             encoding="utf-8",
         )
+        (root / "IMPLEMENTATIONS.md").write_text(
+            """# 简易实现仓库登记
+
+## 仓库清单
+
+| 对应节点 | 实现仓库 | 已核实的实现范围与边界 |
+|---|---|---|
+| [0001 甲节点](nodes/0001-alpha.yaml) | [0001-alpha](https://github.com/ResistanceYX/0001-alpha) | 仅覆盖测试垂直切片，不代表完整实现。 |
+| [私人附件](evidence/private.xlsx) | [private](https://github.com/ResistanceYX/private) | 不得公开。 |
+| [储备区条目](non-startup-tech/reserve.yaml) | [reserve](https://github.com/ResistanceYX/reserve) | 不得公开。 |
+""",
+            encoding="utf-8",
+        )
         return root
 
     def add_node(self, root: Path, node_id: str, title: str, number: str | None = None, **kwargs: str) -> Path:
@@ -166,6 +181,8 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('class="status-guide"', content)
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
         self.assertIn('href="acknowledgements.html"', content)
+        self.assertIn('class="acknowledgements-link implementations-link" href="implementations.html"', content)
+        self.assertLess(content.index('href="acknowledgements.html"'), content.index('href="implementations.html"'))
         self.assertIn('href="nodes/alpha.html"', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
 
@@ -369,6 +386,53 @@ class SiteGeneratorTests(unittest.TestCase):
         (root / "ACKNOWLEDGEMENTS.md").unlink()
         self.assertEqual(parse_acknowledgements(root), [])
 
+    def test_implementations_are_parsed_and_private_rows_are_omitted(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+
+        entries = parse_implementations(root)
+        content = render_implementations(entries)
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["number"], "0001")
+        self.assertEqual(entries[0]["id"], "alpha")
+        self.assertIn('href="nodes/alpha.html">#0001 · 甲节点</a>', content)
+        self.assertIn('href="https://github.com/ResistanceYX/0001-alpha"', content)
+        self.assertIn("仅覆盖测试垂直切片，不代表完整实现。", content)
+        self.assertIn("本页由IMPLEMENTATIONS.md生成", content)
+        self.assertIn("/blob/main/IMPLEMENTATIONS.md", content)
+        self.assertNotIn("private", content)
+        self.assertNotIn("reserve", content)
+        (root / "IMPLEMENTATIONS.md").unlink()
+        self.assertEqual(parse_implementations(root), [])
+        self.assertIn("暂无可公开展示的实现仓库", render_implementations([]))
+
+    def test_implementation_repository_name_must_match_node_file_stem(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        source = root / "IMPLEMENTATIONS.md"
+        source.write_text(
+            source.read_text(encoding="utf-8").replace("[0001-alpha](https://github.com/ResistanceYX/0001-alpha)", "[wrong-name](https://github.com/ResistanceYX/wrong-name)"),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(ValueError, "仓库名必须等于0001-alpha"):
+            parse_implementations(root)
+
+    def test_implementation_scope_is_html_escaped(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        source = root / "IMPLEMENTATIONS.md"
+        source.write_text(
+            source.read_text(encoding="utf-8").replace("仅覆盖测试垂直切片，不代表完整实现。", '<script>alert("x")</script>'),
+            encoding="utf-8",
+        )
+
+        content = render_implementations(parse_implementations(root))
+
+        self.assertNotIn('<script>alert("x")</script>', content)
+        self.assertIn("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;", content)
+
     def test_no_script_detail_leaves_first_two_deaths_open(self) -> None:
         root = self.make_repo()
         alpha = self.add_node(root, "alpha", "甲节点")
@@ -394,6 +458,7 @@ class SiteGeneratorTests(unittest.TestCase):
 
         self.assertTrue((output / "index.html").is_file())
         self.assertTrue((output / "acknowledgements.html").is_file())
+        self.assertTrue((output / "implementations.html").is_file())
         self.assertTrue((output / "nodes" / "alpha.html").is_file())
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())
@@ -411,6 +476,11 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertNotIn("储备区条目", acknowledgements)
         self.assertNotIn("private.xlsx", acknowledgements)
         self.assertNotIn("reserve.yaml", acknowledgements)
+        implementations = (output / "implementations.html").read_text(encoding="utf-8")
+        self.assertIn("#0001 · 甲节点", implementations)
+        self.assertIn("https://github.com/ResistanceYX/0001-alpha", implementations)
+        self.assertNotIn("https://github.com/ResistanceYX/private", implementations)
+        self.assertNotIn("https://github.com/ResistanceYX/reserve", implementations)
         payload = json.loads((output / "data" / "nodes.json").read_text(encoding="utf-8"))
         self.assertEqual(len(payload), 1)
         self.assertEqual(

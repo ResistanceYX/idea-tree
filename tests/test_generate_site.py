@@ -136,13 +136,18 @@ class SiteGeneratorTests(unittest.TestCase):
         file = self.add_node(root, node_id, "AI立法意见辅助提交", number="0010")
         data = yaml.safe_load(file.read_text(encoding="utf-8"))
         data["死法"] = [dict(data["死法"][0]) for _index in range(death_count)]
+        stem = "ai-legal-loophole-hunter_legislation-feedback-sources"
+        if death_count >= 2:
+            data["死法"][1]["分析"] = (
+                f"github数据见evidence/{stem}.md摘录卡，"
+                "静态站数据见下方公开文献摘录卡。"
+            )
         file.write_text(
             yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
         evidence = root / "evidence"
         evidence.mkdir(exist_ok=True)
-        stem = "ai-legal-loophole-hunter_legislation-feedback-sources"
         if write_source:
             (evidence / f"{stem}.md").write_text(
                 "# 文献摘录卡\n\n公开数据点 PUBLIC-EXCERPT-ONLY。\n- 中位数：327人\n",
@@ -587,10 +592,13 @@ class SiteGeneratorTests(unittest.TestCase):
             detail_content,
         )
         self.assertEqual(detail_content.count('class="public-evidence-link"'), 1)
-        self.assertNotIn(f"{stem}.md", detail_content)
+        github_source_note = f"github数据见evidence/{stem}.md摘录卡"
+        self.assertIn(github_source_note, detail_content)
+        self.assertNotIn(f'href="../evidence/{stem}.md"', detail_content)
+        self.assertIn(github_source_note, search_index)
         self.assertNotIn("PUBLIC-EXCERPT-ONLY", search_index)
-        self.assertNotIn("evidence/", search_index)
         self.assertNotIn("PRIVATE-CANARY", public_text)
+        self.assertNotIn("evidence/private.xlsx", public_text)
 
     def test_allowlisted_public_excerpt_missing_source_fails_build(self) -> None:
         root = self.make_repo()

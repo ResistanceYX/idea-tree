@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
 import yaml
@@ -16,6 +17,7 @@ from scripts.generate_site import (
     parse_acknowledgements,
     parse_implementations,
     parse_prose,
+    parse_public_reserve,
     reasoning_preview,
     render_acknowledgements,
     render_detail,
@@ -23,6 +25,7 @@ from scripts.generate_site import (
     render_index,
     render_prose,
     render_public_excerpt_markdown,
+    render_public_reserve,
 )
 
 
@@ -70,6 +73,12 @@ id: {node_id}
 
 
 class SiteGeneratorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # Temporary repositories opt into specific reserve fixtures per test.
+        patcher = patch("scripts.generate_site.PUBLIC_RESERVE", ())
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def make_repo(self) -> Path:
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
@@ -123,6 +132,31 @@ class SiteGeneratorTests(unittest.TestCase):
         number = number or f"{len(list((root / 'nodes').glob('*.yaml'))) + 1:04d}"
         file = root / "nodes" / f"{number}-{node_id}.yaml"
         file.write_text(node_text(node_id, title, number=number, **kwargs), encoding="utf-8")
+        return file
+
+    def add_reserve(
+        self,
+        root: Path,
+        source: str,
+        *,
+        title: str = "储备甲",
+        summary: str = "只用于验证元数据导航的储备简介。",
+        node_id: str | None = None,
+    ) -> Path:
+        file = root / source
+        file.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "id": node_id or file.stem,
+            "标题": title,
+            "一句话": summary,
+            "当前结论": "RESERVE-PRIVATE-CONCLUSION",
+            "死法": [{"分析": "RESERVE-PRIVATE-BODY"}],
+            "备注": "RESERVE-PRIVATE-NOTE",
+        }
+        file.write_text(
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
         return file
 
     def add_allowlisted_excerpt_node(
@@ -227,7 +261,9 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
         self.assertIn('href="acknowledgements.html"', content)
         self.assertIn('class="acknowledgements-link implementations-link" href="implementations.html"', content)
+        self.assertIn('class="acknowledgements-link reserve-link" href="non-startup-tech.html"', content)
         self.assertLess(content.index('href="acknowledgements.html"'), content.index('href="implementations.html"'))
+        self.assertLess(content.index('href="implementations.html"'), content.index('href="non-startup-tech.html"'))
         self.assertIn('href="nodes/alpha.html"', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
 
@@ -492,6 +528,127 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertNotIn('<script>alert("x")</script>', content)
         self.assertIn("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;", content)
 
+    def test_allowlisted_reserve_builds_metadata_only_page(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/listed.yaml",),
+        ):
+            self.add_reserve(
+                root,
+                "non-startup-tech/listed.yaml",
+                title="可公开储备",
+                summary="只有这句简介可以公开。",
+            )
+            self.add_reserve(
+                root,
+                "non-startup-tech/unlisted.yaml",
+                title="未列入白名单的储备",
+                summary="UNLISTED-RESERVE-SUMMARY",
+            )
+            output = self.build(root)
+
+        page_content = (output / "non-startup-tech.html").read_text(encoding="utf-8")
+        index_content = (output / "index.html").read_text(encoding="utf-8")
+        nodes_payload = (output / "data" / "nodes.json").read_text(encoding="utf-8")
+        search_index = (output / "data" / "search-index.json").read_text(encoding="utf-8")
+        public_text = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in output.rglob("*")
+            if path.is_file() and path.suffix in {".html", ".json"}
+        )
+
+        self.assertIn("可公开储备", page_content)
+        self.assertIn("只有这句简介可以公开。", page_content)
+        self.assertIn("共 1 条储备", page_content)
+        self.assertEqual(page_content.count('class="reserve-entry"'), 1)
+        self.assertIn(
+            'href="https://github.com/ResistanceYX/idea-tree/blob/main/non-startup-tech/listed.yaml"',
+            page_content,
+        )
+        self.assertNotIn('class="reserve-id"', page_content)
+        self.assertNotIn('src="assets/site.js"', page_content)
+        self.assertLess(
+            index_content.index('href="implementations.html"'),
+            index_content.index('href="non-startup-tech.html"'),
+        )
+        for private_text in (
+            "RESERVE-PRIVATE",
+            "未列入白名单的储备",
+            "UNLISTED-RESERVE-SUMMARY",
+        ):
+            self.assertNotIn(private_text, public_text)
+        self.assertNotIn("listed", nodes_payload)
+        self.assertNotIn("listed", search_index)
+        self.assertFalse((output / "nodes" / "listed.html").exists())
+        self.assertFalse((output / "non-startup-tech").exists())
+        self.assertFalse(list(output.rglob("*.yaml")))
+
+    def test_public_reserve_escapes_metadata(self) -> None:
+        root = self.make_repo()
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/escape.yaml",),
+        ):
+            self.add_reserve(
+                root,
+                "non-startup-tech/escape.yaml",
+                title='<script>alert("x")</script>',
+                summary="<strong>不得执行</strong>",
+            )
+            entries = parse_public_reserve(root)
+        content = render_public_reserve(entries)
+
+        self.assertNotIn("<script>", content)
+        self.assertNotIn("<strong>", content)
+        self.assertIn("&lt;script&gt;", content)
+        self.assertIn("&lt;strong&gt;", content)
+
+    def test_public_reserve_missing_source_fails_build(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/missing.yaml",),
+        ):
+            with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
+                self.build(root)
+
+    def test_public_reserve_invalid_metadata_fails_build(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/invalid.yaml",),
+        ):
+            self.add_reserve(
+                root,
+                "non-startup-tech/invalid.yaml",
+                node_id="different-id",
+            )
+            with self.assertRaisesRegex(ValueError, "id须与文件名一致"):
+                self.build(root)
+
+    def test_public_reserve_unsafe_or_duplicate_whitelist_fails_build(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_reserve(root, "non-startup-tech/listed.yaml")
+        self.add_reserve(root, "non-startup-tech/nested/listed.yaml")
+
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/listed.yaml", "non-startup-tech/listed.yaml"),
+        ):
+            with self.assertRaisesRegex(ValueError, "公开储备档案白名单重复"):
+                self.build(root)
+        with patch(
+            "scripts.generate_site.PUBLIC_RESERVE",
+            ("non-startup-tech/nested/listed.yaml",),
+        ):
+            with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
+                self.build(root)
+
     def test_no_script_detail_leaves_first_two_deaths_open(self) -> None:
         root = self.make_repo()
         alpha = self.add_node(root, "alpha", "甲节点")
@@ -518,6 +675,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertTrue((output / "index.html").is_file())
         self.assertTrue((output / "acknowledgements.html").is_file())
         self.assertTrue((output / "implementations.html").is_file())
+        self.assertTrue((output / "non-startup-tech.html").is_file())
         self.assertTrue((output / "nodes" / "alpha.html").is_file())
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())

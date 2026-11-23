@@ -44,17 +44,8 @@ PUBLIC_EVIDENCE = (
         "death": 2,
     },
 )
-# Only editor-approved reserve metadata belongs here; tuple order is page order.
-PUBLIC_RESERVE = (
-    "non-startup-tech/critical-infrastructure-drone-array-air-defense.yaml",
-    "non-startup-tech/envisioned-project-collaboration-platform.yaml",
-    "non-startup-tech/high-seas-nuclear-abm.yaml",
-    "non-startup-tech/nuclear-leo-indiscriminate-space-denial.yaml",
-    "non-startup-tech/open-data-statistical-spy-satellite-identification.yaml",
-    "non-startup-tech/uav-ugv-relayed-signal-transmission.yaml",
-    "non-startup-tech/unauthorized-external-attack-simulation-agent-mode.yaml",
-    "non-startup-tech/unmanned-relay-weapon-range-extension.yaml",
-)
+# The editor-approved reserve registry is data, not code; list order is page order.
+PUBLIC_RESERVE_REGISTRY = "non-startup-tech/public_reserve.yaml"
 
 
 def text(value: object) -> str:
@@ -655,15 +646,37 @@ def render_implementations(implementations: list[dict]) -> str:
 
 
 def parse_public_reserve(root: Path) -> list[dict]:
-    """Load only allowlisted reserve titles and summaries, failing closed on bad sources."""
+    """Read the explicit reserve registry; never infer publication from directory membership."""
     reserve_root = (root / "non-startup-tech").resolve()
+    registry_source = (root / PUBLIC_RESERVE_REGISTRY).resolve()
+    if registry_source.parent != reserve_root or not registry_source.is_file():
+        raise ValueError(f"公开储备导航白名单缺失：{PUBLIC_RESERVE_REGISTRY}")
+
+    registry_data = yaml.safe_load(registry_source.read_text(encoding="utf-8"))
+    if (
+        not isinstance(registry_data, dict)
+        or set(registry_data) != {"公开导航"}
+        or not isinstance(registry_data.get("公开导航"), list)
+    ):
+        raise ValueError(
+            "公开储备导航白名单格式无效：顶层只能包含“公开导航”列表："
+            f"{PUBLIC_RESERVE_REGISTRY}"
+        )
+
     entries: list[dict] = []
     seen: set[str] = set()
-    for normalized in PUBLIC_RESERVE:
-        if normalized in seen:
+    for index, filename in enumerate(registry_data["公开导航"], start=1):
+        if (
+            not isinstance(filename, str)
+            or not filename.strip()
+            or filename != filename.strip()
+        ):
+            raise ValueError(f"公开储备导航白名单第{index}项必须是储备YAML文件名")
+        normalized = f"non-startup-tech/{filename}"
+        if filename in seen:
             raise ValueError(f"公开储备档案白名单重复：{normalized}")
-        seen.add(normalized)
-        source = (root / normalized).resolve()
+        seen.add(filename)
+        source = (reserve_root / filename).resolve()
         if (
             source.parent != reserve_root
             or source.suffix != ".yaml"
@@ -715,11 +728,11 @@ def render_public_reserve(entries: list[dict]) -> str:
     <h2 id="reserve-list-title">储备清单</h2>
     <p class="result-count">共 {len(entries)} 条储备</p>
   </div>
-  <p class="sort-note">按显式白名单顺序排列。这里不复制完整YAML；公开导航不代表相关技术、价值或风险结论已经通过实质审核。</p>
+  <p class="sort-note">按public_reserve.yaml白名单顺序排列。这里不复制完整YAML；公开导航不代表相关技术、价值或风险结论已经通过实质审核。</p>
   <ol class="reserve-list">{rows}</ol>
 </section>'''
     else:
-        registry = '<p class="empty-state">暂无可公开展示的非创业技术储备。</p>'
+        registry = '<p class="empty-state">public_reserve.yaml中暂无可公开展示的非创业技术储备。</p>'
 
     return "\n".join(
         (
@@ -731,8 +744,8 @@ def render_public_reserve(entries: list[dict]) -> str:
     <h1>非创业技术储备</h1>
     <p class="detail-lede">只展示经主编确认可公开的储备稿标题与一句话，完整论证与证据仍留在GitHub原始档案。</p>
     <p class="definition">本页不是正式节点索引。条目不参与正式编号、统计、INDEX、REVIEW、科技树、公开JSON或首页搜索，也不生成正式节点详情页。</p>
-    <p class="ack-source">本页按生成器中的显式白名单生成；新增储备文件不会自动公开，白名单缺失或元数据异常会阻断构建。</p>
-    <a class="source-link" href="{REPOSITORY_URL}/tree/main/non-startup-tech" target="_blank" rel="noopener noreferrer">查看GitHub储备区 ↗</a>
+    <p class="ack-source">本页按non-startup-tech/public_reserve.yaml中的显式白名单生成；新增储备文件不会自动登记，白名单或元数据异常会阻断构建。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/blob/main/{PUBLIC_RESERVE_REGISTRY}" target="_blank" rel="noopener noreferrer">查看原始白名单 ↗</a>
   </aside>
   <div class="implementations-content reserve-content">{registry}</div>
 </main>''',

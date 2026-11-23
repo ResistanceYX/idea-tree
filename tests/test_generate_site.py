@@ -22,6 +22,7 @@ from scripts.generate_site import (
     render_implementations,
     render_index,
     render_prose,
+    render_public_excerpt_markdown,
 )
 
 
@@ -124,6 +125,31 @@ class SiteGeneratorTests(unittest.TestCase):
         file.write_text(node_text(node_id, title, number=number, **kwargs), encoding="utf-8")
         return file
 
+    def add_allowlisted_excerpt_node(
+        self,
+        root: Path,
+        *,
+        death_count: int = 2,
+        write_source: bool = True,
+    ) -> tuple[Path, str]:
+        node_id = "ai-legal-loophole-hunter_legislation-feedback"
+        file = self.add_node(root, node_id, "AI立法意见辅助提交", number="0010")
+        data = yaml.safe_load(file.read_text(encoding="utf-8"))
+        data["死法"] = [dict(data["死法"][0]) for _index in range(death_count)]
+        file.write_text(
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+        evidence = root / "evidence"
+        evidence.mkdir(exist_ok=True)
+        stem = "ai-legal-loophole-hunter_legislation-feedback-sources"
+        if write_source:
+            (evidence / f"{stem}.md").write_text(
+                "# 文献摘录卡\n\n公开数据点 PUBLIC-EXCERPT-ONLY。\n- 中位数：327人\n",
+                encoding="utf-8",
+            )
+        return file, stem
+
     def build(self, root: Path) -> Path:
         output = root / "public"
         build_site(root, output)
@@ -177,6 +203,20 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('死法类型（多选，满足任一）', content)
         self.assertIn('id="filter-results-link"', content)
         self.assertIn('查看 2 个结果 ↑', content)
+        self.assertIn('id="distribution-jump"', content)
+        self.assertIn('href="#distribution-title"', content)
+        self.assertIn('查看全部死法统计 ↓', content)
+        self.assertIn('<h2 id="distribution-title" tabindex="-1">死法条目分布</h2>', content)
+        self.assertIn('id="distribution-return"', content)
+        self.assertIn('>返回节点列表 ↑</a>', content)
+        self.assertLess(
+            content.index('id="filter-results-link"'),
+            content.index('id="distribution-jump"'),
+        )
+        self.assertLess(
+            content.index('id="distribution-title"'),
+            content.index('id="distribution-return"'),
+        )
         self.assertNotIn('>筛选档案 ↓</a>', content)
         self.assertIn('class="status-guide"', content)
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
@@ -267,8 +307,22 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('href="../index.html"', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
         self.assertIn('记录类型：访谈记录', content)
-        self.assertIn('附件不通过静态站发布', content)
+        self.assertIn('原始附件不在静态站发布，公开页仅保留必要摘要。', content)
+        self.assertNotIn('请在仓库中', content)
+        self.assertNotIn('evidence/private.xlsx', content)
         self.assertNotIn('private.xlsx', content)
+
+    def test_demand_without_attachment_omits_attachment_notice(self) -> None:
+        root = self.make_repo()
+        file = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(file.read_text(encoding="utf-8"))
+        data["需求证据"] = {"类型": "暂无需求", "附件": "无"}
+
+        content = render_detail(file, data, {"0001-alpha": file})
+
+        self.assertIn('记录类型：暂无需求。</p>', content)
+        self.assertNotIn('原始附件不在静态站发布', content)
+        self.assertNotIn('请在仓库中', content)
 
     def test_parse_prose_joins_soft_lines_without_fusing_words(self) -> None:
         self.assertEqual(join_soft("multi", "  Agent"), "multi Agent")
@@ -492,6 +546,68 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertEqual("0001", payload[0]["编号"])
         self.assertEqual("nodes/alpha.html", payload[0]["页面"])
 
+    def test_allowlisted_public_excerpt_builds_only_html(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        _file, stem = self.add_allowlisted_excerpt_node(root)
+        (root / "evidence" / "private.xlsx").write_bytes(b"PRIVATE-CANARY")
+
+        output = self.build(root)
+        card = output / "evidence" / f"{stem}.html"
+        node_id = "ai-legal-loophole-hunter_legislation-feedback"
+        detail = output / "nodes" / f"{node_id}.html"
+        card_content = card.read_text(encoding="utf-8")
+        detail_content = detail.read_text(encoding="utf-8")
+        search_index = (output / "data" / "search-index.json").read_text(encoding="utf-8")
+        public_text = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in output.rglob("*")
+            if path.is_file() and path.suffix in {".html", ".json"}
+        )
+
+        self.assertTrue(card.is_file())
+        self.assertEqual(
+            sorted(path.name for path in (output / "evidence").iterdir()),
+            [f"{stem}.html"],
+        )
+        self.assertFalse((output / "evidence" / f"{stem}.md").exists())
+        self.assertFalse((output / "evidence" / "private.xlsx").exists())
+        self.assertFalse(list(output.rglob("*.xlsx")))
+        self.assertFalse(list(output.rglob("*.md")))
+        self.assertIn("公开文献摘录卡", card_content)
+        self.assertIn("中位数：327人", card_content)
+        self.assertIn("PUBLIC-EXCERPT-ONLY", card_content)
+        self.assertIn(
+            f'href="../nodes/{node_id}.html#death-2"',
+            card_content,
+        )
+        self.assertNotIn('src="../assets/site.js"', card_content)
+        self.assertIn(
+            f'href="../evidence/{stem}.html"',
+            detail_content,
+        )
+        self.assertEqual(detail_content.count('class="public-evidence-link"'), 1)
+        self.assertNotIn(f"{stem}.md", detail_content)
+        self.assertNotIn("PUBLIC-EXCERPT-ONLY", search_index)
+        self.assertNotIn("evidence/", search_index)
+        self.assertNotIn("PRIVATE-CANARY", public_text)
+
+    def test_allowlisted_public_excerpt_missing_source_fails_build(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_allowlisted_excerpt_node(root, write_source=False)
+
+        with self.assertRaisesRegex(ValueError, "公开摘录卡缺失或路径不安全"):
+            self.build(root)
+
+    def test_allowlisted_public_excerpt_invalid_death_fails_build(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_allowlisted_excerpt_node(root, death_count=1)
+
+        with self.assertRaisesRegex(ValueError, "公开摘录卡归属的死法不存在"):
+            self.build(root)
+
     def test_new_node_is_included_on_next_build(self) -> None:
         root = self.make_repo()
         self.add_node(root, "alpha", "甲节点")
@@ -530,6 +646,20 @@ class SiteGeneratorTests(unittest.TestCase):
                     continue
                 target = (html_file.parent / split.path).resolve()
                 self.assertTrue(target.is_file(), f"{html_file}: 无效本地链接 {link}")
+
+    def test_public_excerpt_markdown_escapes_raw_html(self) -> None:
+        content = render_public_excerpt_markdown(
+            "# 标题<script>alert(1)</script>\n\n"
+            "正文<strong>不得执行</strong>。\n"
+            "- <iframe src=\"https://example.com\"></iframe>"
+        )
+
+        self.assertNotIn("<script>", content)
+        self.assertNotIn("<strong>", content)
+        self.assertNotIn("<iframe", content)
+        self.assertIn("&lt;script&gt;", content)
+        self.assertIn("&lt;strong&gt;", content)
+        self.assertIn("&lt;iframe", content)
 
     def test_html_content_is_escaped(self) -> None:
         root = self.make_repo()

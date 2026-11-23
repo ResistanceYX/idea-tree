@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build idea-tree's public static site without copying evidence or backups."""
+"""Build the public site with allowlisted excerpt pages; never copy raw evidence or backups."""
 
 from __future__ import annotations
 
@@ -37,6 +37,13 @@ DEATH_TYPES = (
 )
 ARCHIVE_TYPES = ("预审", "验尸")
 REVIVAL_STATUSES = ("死透", "复活候选", "已复活")
+PUBLIC_EVIDENCE = (
+    {
+        "source": "evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md",
+        "node_id": "ai-legal-loophole-hunter_legislation-feedback",
+        "death": 2,
+    },
+)
 
 
 def text(value: object) -> str:
@@ -184,6 +191,66 @@ def render_prose(value: object) -> str:
             output.append(f"<p>{escape(payload)}</p>")
     output.append("</div>")
     return "".join(output)
+
+
+def public_evidence_for(node_id: str, death_index: int) -> dict | None:
+    """Return the explicitly public excerpt attached to one death, if any."""
+    for entry in PUBLIC_EVIDENCE:
+        if entry["node_id"] == node_id and entry["death"] == death_index:
+            return entry
+    return None
+
+
+def public_evidence_href(entry: dict) -> str:
+    """Detail pages link to generated HTML, never to the source Markdown."""
+    return f"../evidence/{Path(entry['source']).stem}.html"
+
+
+def render_public_excerpt_markdown(value: str) -> str:
+    """Render the allowlisted excerpt's headings, paragraphs and lists safely."""
+    output: list[str] = []
+    paragraph: list[str] = []
+    list_open = False
+
+    def flush_paragraph() -> None:
+        nonlocal paragraph
+        content = ""
+        for line in paragraph:
+            content = join_soft(content, line)
+        if content:
+            output.append(f"<p>{escape(content)}</p>")
+        paragraph = []
+
+    def close_list() -> None:
+        nonlocal list_open
+        if list_open:
+            output.append("</ul>")
+        list_open = False
+
+    for raw_line in value.splitlines():
+        line = raw_line.strip()
+        if not line:
+            flush_paragraph()
+            close_list()
+            continue
+        if line.startswith("# "):
+            flush_paragraph()
+            close_list()
+            output.append(f"<h2>{escape(line[2:].strip())}</h2>")
+            continue
+        if line.startswith("- "):
+            flush_paragraph()
+            if not list_open:
+                output.append("<ul>")
+                list_open = True
+            output.append(f"<li>{escape(line[2:].strip())}</li>")
+            continue
+        close_list()
+        paragraph.append(line)
+
+    flush_paragraph()
+    close_list()
+    return "\n".join(output)
 
 
 def load_nodes(root: Path) -> list[tuple[Path, dict]]:
@@ -916,10 +983,12 @@ def render_index(
       </details>
       <button class="reset-button" id="reset-filters" type="button" disabled>清除筛选</button>
       <a class="mobile-filter-link" id="filter-results-link" href="#catalog-title" aria-label="查看 {len(records)} 个筛选结果并返回节点列表">查看 {len(records)} 个结果 ↑</a>
+      <a class="mobile-filter-link distribution-jump" id="distribution-jump" href="#distribution-title" aria-label="查看全部死法条目的类型分布">查看全部死法统计 ↓</a>
     </form>
     <section class="distribution" aria-labelledby="distribution-title">
-      <h2 id="distribution-title">死法条目分布</h2>
+      <h2 id="distribution-title" tabindex="-1">死法条目分布</h2>
       {''.join(distribution)}
+      <a class="mobile-filter-link distribution-return" id="distribution-return" href="#catalog-title">返回节点列表 ↑</a>
     </section>
     {render_recent_reviews(records, reviews)}
     <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
@@ -1001,6 +1070,13 @@ def render_detail(
             )
             links_html = f"<h4>证据链接</h4><ol class=\"evidence-list\">{items}</ol>"
         reasoning = death.get("推理") or death.get("分析") or ""
+        public_material = public_evidence_for(node_id, index)
+        public_material_html = (
+            '<p class="public-evidence-link">'
+            f'<a href="{escape(public_evidence_href(public_material))}">查看公开文献摘录卡 →</a>'
+            '</p>'
+            if public_material else ""
+        )
         optional_sections = []
         for field in ("案例", "备注"):
             if death.get(field):
@@ -1017,6 +1093,7 @@ def render_detail(
     <p>{escape(death.get('证据'))}</p>
     <h4>推理／分析</h4>
     {render_prose(reasoning)}
+    {public_material_html}
     {''.join(optional_sections)}
     {links_html}
   </div>
@@ -1051,8 +1128,18 @@ def render_detail(
         )
     demand = data.get("需求证据")
     if isinstance(demand, dict) and demand.get("类型"):
+        attachment_note = ""
+        if demand.get("附件") not in (None, "", "无"):
+            attachment_note = (
+                '<p class="prose attachment-note">'
+                '原始附件不在静态站发布，公开页仅保留必要摘要。'
+                '</p>'
+            )
         extra_sections.append(
-            f'<section class="content-section" id="demand"><h2>需求证据</h2><p class="prose">记录类型：{escape(demand.get("类型"))}。附件不通过静态站发布，请在仓库中按既有权限与边界查看。</p></section>'
+            '<section class="content-section" id="demand">'
+            '<h2>需求证据</h2>'
+            f'<p class="prose">记录类型：{escape(demand.get("类型"))}。</p>'
+            f'{attachment_note}</section>'
         )
     if data.get("备注"):
         extra_sections.append(
@@ -1098,6 +1185,42 @@ def render_detail(
     )
 
 
+def render_public_evidence_page(
+    source: Path,
+    entry: dict,
+    file: Path,
+    data: dict,
+) -> str:
+    """Render one allowlisted public excerpt with a return path to its node."""
+    node_number, node_id = node_identity(file, data)
+    title = text(data.get("标题", node_id))
+    death_index = entry["death"]
+    body = render_public_excerpt_markdown(source.read_text(encoding="utf-8"))
+    return "\n".join(
+        (
+            page_head(
+                f"公开文献摘录卡 · #{node_number}",
+                f"{title}的公开文献数据摘录与来源说明。",
+                "../",
+            ),
+            page_header("../", detail=True),
+            f"""<main id="main-content" class="shell detail-layout">
+  <aside class="detail-aside">
+    <p class="kicker">Public evidence / #{escape(node_number)}</p>
+    <h1>公开文献摘录卡</h1>
+    <p class="detail-lede">#{escape(node_number)} · {escape(title)} · 死法{death_index}</p>
+    <p class="scope-note"><strong>公开边界</strong>本页仅发布经确认的公开文献数据点与来源说明，不包含未列入白名单的原始附件。</p>
+    <a class="source-link" href="../nodes/{escape(node_id)}.html#death-{death_index}">返回 #{escape(node_number)} · 死法{death_index} ↑</a>
+  </aside>
+  <div class="detail-content">
+    <article class="content-section public-evidence-card">{body}</article>
+  </div>
+</main>""",
+            page_footer("../"),
+        )
+    )
+
+
 def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
     result = []
     for file, data in records:
@@ -1124,6 +1247,48 @@ def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
             item["结论边界"] = searchable_text(data.get("结论边界"))
         result.append(item)
     return result
+
+
+def build_public_evidence(
+    root: Path,
+    output: Path,
+    records: list[tuple[Path, dict]],
+) -> None:
+    """Build only allowlisted excerpts belonging to nodes in this build."""
+    by_id = {
+        node_identity(file, data)[1]: (file, data)
+        for file, data in records
+    }
+    evidence_root = (root / "evidence").resolve()
+
+    for entry in PUBLIC_EVIDENCE:
+        record = by_id.get(entry["node_id"])
+        if record is None:
+            continue
+        file, data = record
+        source = (root / entry["source"]).resolve()
+        if (
+            source.parent != evidence_root
+            or source.suffix != ".md"
+            or not source.is_file()
+        ):
+            raise ValueError(f"公开摘录卡缺失或路径不安全：{entry['source']}")
+
+        death_index = entry["death"]
+        deaths = data.get("死法", [])
+        if (
+            not isinstance(death_index, int)
+            or isinstance(death_index, bool)
+            or not 1 <= death_index <= len(deaths)
+        ):
+            raise ValueError(f"公开摘录卡归属的死法不存在：{entry['node_id']}")
+
+        target = output / "evidence" / f"{source.stem}.html"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            render_public_evidence_page(source, entry, file, data),
+            encoding="utf-8",
+        )
 
 
 def build_site(root: Path, output: Path) -> int:
@@ -1163,6 +1328,7 @@ def build_site(root: Path, output: Path) -> int:
         (output / "nodes" / f"{node_id}.html").write_text(
             render_detail(file, data, ref_to_file, ref_to_title, reviews.get(node_id)), encoding="utf-8"
         )
+    build_public_evidence(root, output, records)
     (output / "data" / "nodes.json").write_text(
         json.dumps(public_node_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

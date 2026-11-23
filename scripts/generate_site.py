@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the public site with allowlisted excerpt pages; never copy raw evidence or backups."""
+"""Build the public site with allowlisted excerpts and reserve metadata; never copy raw sources."""
 
 from __future__ import annotations
 
@@ -43,6 +43,17 @@ PUBLIC_EVIDENCE = (
         "node_id": "ai-legal-loophole-hunter_legislation-feedback",
         "death": 2,
     },
+)
+# Only editor-approved reserve metadata belongs here; tuple order is page order.
+PUBLIC_RESERVE = (
+    "non-startup-tech/critical-infrastructure-drone-array-air-defense.yaml",
+    "non-startup-tech/envisioned-project-collaboration-platform.yaml",
+    "non-startup-tech/high-seas-nuclear-abm.yaml",
+    "non-startup-tech/nuclear-leo-indiscriminate-space-denial.yaml",
+    "non-startup-tech/open-data-statistical-spy-satellite-identification.yaml",
+    "non-startup-tech/uav-ugv-relayed-signal-transmission.yaml",
+    "non-startup-tech/unauthorized-external-attack-simulation-agent-mode.yaml",
+    "non-startup-tech/unmanned-relay-weapon-range-extension.yaml",
 )
 
 
@@ -643,6 +654,93 @@ def render_implementations(implementations: list[dict]) -> str:
     )
 
 
+def parse_public_reserve(root: Path) -> list[dict]:
+    """Load only allowlisted reserve titles and summaries, failing closed on bad sources."""
+    reserve_root = (root / "non-startup-tech").resolve()
+    entries: list[dict] = []
+    seen: set[str] = set()
+    for normalized in PUBLIC_RESERVE:
+        if normalized in seen:
+            raise ValueError(f"公开储备档案白名单重复：{normalized}")
+        seen.add(normalized)
+        source = (root / normalized).resolve()
+        if (
+            source.parent != reserve_root
+            or source.suffix != ".yaml"
+            or not source.is_file()
+        ):
+            raise ValueError(f"公开储备档案缺失或路径不安全：{normalized}")
+
+        data = yaml.safe_load(source.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError(f"公开储备档案元数据无效：{normalized}")
+        title = searchable_text(data.get("标题"))
+        summary = searchable_text(data.get("一句话"))
+        if (
+            not isinstance(data.get("标题"), str)
+            or not isinstance(data.get("一句话"), str)
+            or not title
+            or not summary
+            or data.get("id") != source.stem
+        ):
+            raise ValueError(
+                "公开储备档案的id须与文件名一致，标题和一句话须为非空字符串："
+                f"{normalized}"
+            )
+        entries.append(
+            {
+                "source": normalized,
+                "title": title,
+                "summary": summary,
+            }
+        )
+    return entries
+
+
+def render_public_reserve(entries: list[dict]) -> str:
+    """Render a metadata-only navigation page, never reserve detail pages or JSON."""
+    rows = "".join(
+        f'''<li class="reserve-entry">
+  <div class="reserve-record">
+    <h3>{escape(item["title"])}</h3>
+    <p>{escape(item["summary"])}</p>
+  </div>
+  <a class="reserve-source" href="{REPOSITORY_URL}/blob/main/{quote(item["source"], safe="/")}" target="_blank" rel="noopener noreferrer">GitHub 原文 ↗</a>
+</li>'''
+        for item in entries
+    )
+    if entries:
+        registry = f'''<section class="reserve-registry" aria-labelledby="reserve-list-title">
+  <div class="catalog-head">
+    <h2 id="reserve-list-title">储备清单</h2>
+    <p class="result-count">共 {len(entries)} 条储备</p>
+  </div>
+  <p class="sort-note">按显式白名单顺序排列。这里不复制完整YAML；公开导航不代表相关技术、价值或风险结论已经通过实质审核。</p>
+  <ol class="reserve-list">{rows}</ol>
+</section>'''
+    else:
+        registry = '<p class="empty-state">暂无可公开展示的非创业技术储备。</p>'
+
+    return "\n".join(
+        (
+            page_head("非创业技术储备", "idea-tree非创业技术储备的标题、一句话与GitHub原文导航。"),
+            page_header(detail=True),
+            f'''<main id="main-content" class="shell acknowledgements-layout reserve-layout">
+  <aside class="acknowledgements-aside reserve-aside">
+    <p class="kicker">Reserve / metadata only</p>
+    <h1>非创业技术储备</h1>
+    <p class="detail-lede">只展示经主编确认可公开的储备稿标题与一句话，完整论证与证据仍留在GitHub原始档案。</p>
+    <p class="definition">本页不是正式节点索引。条目不参与正式编号、统计、INDEX、REVIEW、科技树、公开JSON或首页搜索，也不生成正式节点详情页。</p>
+    <p class="ack-source">本页按生成器中的显式白名单生成；新增储备文件不会自动公开，白名单缺失或元数据异常会阻断构建。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/tree/main/non-startup-tech" target="_blank" rel="noopener noreferrer">查看GitHub储备区 ↗</a>
+  </aside>
+  <div class="implementations-content reserve-content">{registry}</div>
+</main>''',
+            page_footer(),
+        )
+    )
+
+
 def searchable_text(value: object) -> str:
     """Normalize public source text while preserving Latin word boundaries."""
     if isinstance(value, list):
@@ -993,6 +1091,7 @@ def render_index(
     {render_recent_reviews(records, reviews)}
     <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
     <a class="acknowledgements-link implementations-link" href="implementations.html"><span>简易实现仓库</span><span>查看节点对应的实现与边界 →</span></a>
+    <a class="acknowledgements-link reserve-link" href="non-startup-tech.html"><span>非创业技术储备</span><span>查看储备标题、简介与GitHub原文 →</span></a>
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
     <div class="catalog-head">
@@ -1306,6 +1405,7 @@ def build_site(root: Path, output: Path) -> int:
     )
     acknowledgements = parse_acknowledgements(root)
     implementations = parse_implementations(root)
+    reserve = parse_public_reserve(root)
     assets = root / "site" / "assets"
     if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
         raise ValueError("site/assets/ 缺少 style.css 或 site.js")
@@ -1322,6 +1422,9 @@ def build_site(root: Path, output: Path) -> int:
     )
     (output / "implementations.html").write_text(
         render_implementations(implementations), encoding="utf-8"
+    )
+    (output / "non-startup-tech.html").write_text(
+        render_public_reserve(reserve), encoding="utf-8"
     )
     for file, data in records:
         _node_number, node_id = node_identity(file, data)

@@ -4,13 +4,13 @@ import tempfile
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
-from unittest.mock import patch
 from urllib.parse import urlsplit
 
 import yaml
 
 from scripts.generate_site import (
     NUMBERED_MARKER,
+    PUBLIC_RESERVE_REGISTRY,
     build_site,
     join_soft,
     load_nodes,
@@ -73,12 +73,6 @@ id: {node_id}
 
 
 class SiteGeneratorTests(unittest.TestCase):
-    def setUp(self) -> None:
-        # Temporary repositories opt into specific reserve fixtures per test.
-        patcher = patch("scripts.generate_site.PUBLIC_RESERVE", ())
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
     def make_repo(self) -> Path:
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
@@ -126,7 +120,21 @@ class SiteGeneratorTests(unittest.TestCase):
 """,
             encoding="utf-8",
         )
+        self.write_reserve_whitelist(root)
         return root
+
+    def write_reserve_whitelist(self, root: Path, filenames: list[str] | None = None) -> Path:
+        file = root / PUBLIC_RESERVE_REGISTRY
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(
+            yaml.safe_dump(
+                {"公开导航": filenames or []},
+                allow_unicode=True,
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        return file
 
     def add_node(self, root: Path, node_id: str, title: str, number: str | None = None, **kwargs: str) -> Path:
         number = number or f"{len(list((root / 'nodes').glob('*.yaml'))) + 1:04d}"
@@ -531,23 +539,20 @@ class SiteGeneratorTests(unittest.TestCase):
     def test_allowlisted_reserve_builds_metadata_only_page(self) -> None:
         root = self.make_repo()
         self.add_node(root, "alpha", "甲节点")
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/listed.yaml",),
-        ):
-            self.add_reserve(
-                root,
-                "non-startup-tech/listed.yaml",
-                title="可公开储备",
-                summary="只有这句简介可以公开。",
-            )
-            self.add_reserve(
-                root,
-                "non-startup-tech/unlisted.yaml",
-                title="未列入白名单的储备",
-                summary="UNLISTED-RESERVE-SUMMARY",
-            )
-            output = self.build(root)
+        self.add_reserve(
+            root,
+            "non-startup-tech/listed.yaml",
+            title="可公开储备",
+            summary="只有这句简介可以公开。",
+        )
+        self.add_reserve(
+            root,
+            "non-startup-tech/unlisted.yaml",
+            title="未列入白名单的储备",
+            summary="UNLISTED-RESERVE-SUMMARY",
+        )
+        self.write_reserve_whitelist(root, ["listed.yaml"])
+        output = self.build(root)
 
         page_content = (output / "non-startup-tech.html").read_text(encoding="utf-8")
         index_content = (output / "index.html").read_text(encoding="utf-8")
@@ -565,6 +570,10 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertEqual(page_content.count('class="reserve-entry"'), 1)
         self.assertIn(
             'href="https://github.com/ResistanceYX/idea-tree/blob/main/non-startup-tech/listed.yaml"',
+            page_content,
+        )
+        self.assertIn(
+            'href="https://github.com/ResistanceYX/idea-tree/blob/main/non-startup-tech/public_reserve.yaml"',
             page_content,
         )
         self.assertNotIn('class="reserve-id"', page_content)
@@ -587,17 +596,14 @@ class SiteGeneratorTests(unittest.TestCase):
 
     def test_public_reserve_escapes_metadata(self) -> None:
         root = self.make_repo()
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/escape.yaml",),
-        ):
-            self.add_reserve(
-                root,
-                "non-startup-tech/escape.yaml",
-                title='<script>alert("x")</script>',
-                summary="<strong>不得执行</strong>",
-            )
-            entries = parse_public_reserve(root)
+        self.add_reserve(
+            root,
+            "non-startup-tech/escape.yaml",
+            title='<script>alert("x")</script>',
+            summary="<strong>不得执行</strong>",
+        )
+        self.write_reserve_whitelist(root, ["escape.yaml"])
+        entries = parse_public_reserve(root)
         content = render_public_reserve(entries)
 
         self.assertNotIn("<script>", content)
@@ -608,27 +614,21 @@ class SiteGeneratorTests(unittest.TestCase):
     def test_public_reserve_missing_source_fails_build(self) -> None:
         root = self.make_repo()
         self.add_node(root, "alpha", "甲节点")
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/missing.yaml",),
-        ):
-            with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
-                self.build(root)
+        self.write_reserve_whitelist(root, ["missing.yaml"])
+        with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
+            self.build(root)
 
     def test_public_reserve_invalid_metadata_fails_build(self) -> None:
         root = self.make_repo()
         self.add_node(root, "alpha", "甲节点")
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/invalid.yaml",),
-        ):
-            self.add_reserve(
-                root,
-                "non-startup-tech/invalid.yaml",
-                node_id="different-id",
-            )
-            with self.assertRaisesRegex(ValueError, "id须与文件名一致"):
-                self.build(root)
+        self.add_reserve(
+            root,
+            "non-startup-tech/invalid.yaml",
+            node_id="different-id",
+        )
+        self.write_reserve_whitelist(root, ["invalid.yaml"])
+        with self.assertRaisesRegex(ValueError, "id须与文件名一致"):
+            self.build(root)
 
     def test_public_reserve_unsafe_or_duplicate_whitelist_fails_build(self) -> None:
         root = self.make_repo()
@@ -636,18 +636,27 @@ class SiteGeneratorTests(unittest.TestCase):
         self.add_reserve(root, "non-startup-tech/listed.yaml")
         self.add_reserve(root, "non-startup-tech/nested/listed.yaml")
 
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/listed.yaml", "non-startup-tech/listed.yaml"),
-        ):
-            with self.assertRaisesRegex(ValueError, "公开储备档案白名单重复"):
-                self.build(root)
-        with patch(
-            "scripts.generate_site.PUBLIC_RESERVE",
-            ("non-startup-tech/nested/listed.yaml",),
-        ):
-            with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
-                self.build(root)
+        self.write_reserve_whitelist(root, ["listed.yaml", "listed.yaml"])
+        with self.assertRaisesRegex(ValueError, "公开储备档案白名单重复"):
+            self.build(root)
+        self.write_reserve_whitelist(root, ["nested/listed.yaml"])
+        with self.assertRaisesRegex(ValueError, "公开储备档案缺失或路径不安全"):
+            self.build(root)
+
+    def test_public_reserve_registry_must_exist_and_contain_filename_list(self) -> None:
+        root = self.make_repo()
+        registry = root / PUBLIC_RESERVE_REGISTRY
+        registry.unlink()
+        with self.assertRaisesRegex(ValueError, "公开储备导航白名单缺失"):
+            parse_public_reserve(root)
+
+        registry.write_text("公开导航: listed.yaml\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "公开储备导航白名单格式无效"):
+            parse_public_reserve(root)
+
+        registry.write_text("- listed.yaml\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "公开储备导航白名单格式无效"):
+            parse_public_reserve(root)
 
     def test_no_script_detail_leaves_first_two_deaths_open(self) -> None:
         root = self.make_repo()
@@ -666,7 +675,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.add_node(root, "alpha", "甲节点")
         (root / "evidence").mkdir()
         (root / "evidence" / "private.xlsx").write_bytes(b"not public")
-        (root / "non-startup-tech").mkdir()
+        (root / "non-startup-tech").mkdir(exist_ok=True)
         (root / "non-startup-tech" / "reserve.yaml").write_text("id: reserve\n", encoding="utf-8")
         (root / "BACKUP.md").write_text("backup metadata\n", encoding="utf-8")
 

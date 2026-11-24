@@ -573,7 +573,7 @@ class SiteGeneratorTests(unittest.TestCase):
             page_content,
         )
         self.assertIn(
-            'href="https://github.com/ResistanceYX/idea-tree/blob/main/non-startup-tech/public_reserve.yaml"',
+            'href="https://github.com/ResistanceYX/idea-tree/blob/main/non-startup-tech/00-public_reserve.yaml"',
             page_content,
         )
         self.assertNotIn('class="reserve-id"', page_content)

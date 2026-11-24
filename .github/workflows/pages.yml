@@ -6,7 +6,7 @@ on:
     paths:
       - "nodes/**"
       - "README.md"
-      - "ACKNOWLEDGEMENTS.md"
+      - "ACKNOWLEDGEMENTS/**"
       - "IMPLEMENTATIONS.md"
       - "non-startup-tech/**"
       - "evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md"
@@ -20,7 +20,7 @@ on:
     paths:
       - "nodes/**"
       - "README.md"
-      - "ACKNOWLEDGEMENTS.md"
+      - "ACKNOWLEDGEMENTS/**"
       - "IMPLEMENTATIONS.md"
       - "non-startup-tech/**"
       - "evidence/ai-legal-loophole-hunter_legislation-feedback-sources.md"

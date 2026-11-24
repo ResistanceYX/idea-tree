@@ -193,4 +193,4 @@
 
 ## 特别鸣谢
 
-完整记录已移至 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)，公开展示见[特别鸣谢页](https://resistanceyx.github.io/idea-tree/acknowledgements.html)。
+完整记录已按助手拆分至 [ACKNOWLEDGEMENTS/README.md](ACKNOWLEDGEMENTS/README.md)，公开展示见[特别鸣谢页](https://resistanceyx.github.io/idea-tree/acknowledgements.html)。

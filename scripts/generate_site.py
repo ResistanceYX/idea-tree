@@ -408,49 +408,90 @@ def render_status_guide() -> str:
 
 
 def parse_acknowledgements(root: Path) -> list[dict]:
-    source = root / "ACKNOWLEDGEMENTS.md"
-    if not source.is_file():
-        return []
-    section = source.read_text(encoding="utf-8")
+    """Read one numbered file per assistant and verify the directory registry."""
+    directory = root / "ACKNOWLEDGEMENTS"
+    registry = directory / "README.md"
+    if not directory.is_dir() or not registry.is_file():
+        raise ValueError("特别鸣谢目录或名录缺失：ACKNOWLEDGEMENTS/")
+
+    file_pattern = re.compile(r"^(\d{3})-(.+)\.md$")
+    sources: list[tuple[int, str, str, Path]] = []
+    seen_numbers: set[str] = set()
+    for source in directory.iterdir():
+        if not source.is_file() or source.name == "README.md":
+            continue
+        match = file_pattern.fullmatch(source.name)
+        if not match:
+            raise ValueError(f"特别鸣谢文件名不符合 '<三位编号>-<名字>.md'：{source.name}")
+        number, name = match.groups()
+        if number in seen_numbers:
+            raise ValueError(f"特别鸣谢助手编号重复：{number}")
+        seen_numbers.add(number)
+        sources.append((int(number), number, name.strip(), source))
+    if not sources:
+        raise ValueError("特别鸣谢目录没有助手记录文件")
+    sources.sort(key=lambda item: item[0])
+
+    registry_rows = []
+    row_pattern = re.compile(
+        r"^\|\s*(\d{3})\s*\|\s*([^|]+?)\s*\|\s*\[[^\]]+\]\(([^)]+)\)\s*\|\s*$"
+    )
+    for line in registry.read_text(encoding="utf-8").splitlines():
+        match = row_pattern.match(line)
+        if match:
+            number, name, target = match.groups()
+            registry_rows.append((number, name.strip(), target.strip()))
+    expected_rows = [
+        (number, name, source.name) for _sort, number, name, source in sources
+    ]
+    if registry_rows != expected_rows:
+        raise ValueError("特别鸣谢名录必须与编号文件按助手顺序一一对应")
 
     people: list[dict] = []
-    current: dict | None = None
-    for line in section.splitlines():
-        person_match = re.match(r"^\*\*(.+?)\*\*：(.*)$", line.strip())
-        if person_match:
-            current = {
-                "name": person_match.group(1).strip(),
-                "description": person_match.group(2).strip(),
-                "metadata": [],
-                "works": [],
-            }
-            people.append(current)
-            continue
-        if current is None:
-            continue
-        metadata_match = re.match(r"^-\s*([^：]+)：(.*)$", line.strip())
-        if metadata_match and metadata_match.group(1).strip() != "作品":
-            current["metadata"].append((metadata_match.group(1).strip(), metadata_match.group(2).strip()))
-            continue
-        row_match = re.match(r"^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$", line)
-        if not row_match:
-            continue
-        number, work, link_cell = row_match.groups()
-        links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", link_cell)
-        private_targets = (
-            "evidence/",
-            "non-startup-tech/",
-        )
-        if any(target.lstrip("./").startswith(private_targets) for _label, target in links):
-            continue
-        current["works"].append(
-            {
-                "number": int(number),
-                "work": work.strip(),
-                "links": [(label.strip(), target.strip()) for label, target in links],
-                "plain_link": "" if links else link_cell.strip(),
-            }
-        )
+    for _sort, assistant_number, expected_name, source in sources:
+        section = source.read_text(encoding="utf-8")
+        file_people: list[dict] = []
+        current: dict | None = None
+        for line in section.splitlines():
+            person_match = re.match(r"^\*\*(.+?)\*\*：(.*)$", line.strip())
+            if person_match:
+                current = {
+                    "name": person_match.group(1).strip(),
+                    "description": person_match.group(2).strip(),
+                    "number": assistant_number,
+                    "metadata": [],
+                    "works": [],
+                }
+                file_people.append(current)
+                continue
+            if current is None:
+                continue
+            metadata_match = re.match(r"^-\s*([^：]+)：(.*)$", line.strip())
+            if metadata_match and metadata_match.group(1).strip() != "作品":
+                current["metadata"].append((metadata_match.group(1).strip(), metadata_match.group(2).strip()))
+                continue
+            row_match = re.match(r"^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$", line)
+            if not row_match:
+                continue
+            number, work, link_cell = row_match.groups()
+            links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", link_cell)
+            private_targets = (
+                "evidence/",
+                "non-startup-tech/",
+            )
+            if any(target.lstrip("./").startswith(private_targets) for _label, target in links):
+                continue
+            current["works"].append(
+                {
+                    "number": int(number),
+                    "work": work.strip(),
+                    "links": [(label.strip(), target.strip()) for label, target in links],
+                    "plain_link": "" if links else link_cell.strip(),
+                }
+            )
+        if len(file_people) != 1 or file_people[0]["name"] != expected_name:
+            raise ValueError(f"特别鸣谢文件与助手身份不符：{source.name}")
+        people.extend(file_people)
     return people
 
 
@@ -461,7 +502,11 @@ def render_acknowledgement_link(label: str, target: str) -> str:
             return escape(label)
         href = target
     else:
-        normalized = target.lstrip("./")
+        normalized = target
+        while normalized.startswith("../"):
+            normalized = normalized[3:]
+        while normalized.startswith("./"):
+            normalized = normalized[2:]
         if normalized.startswith(("evidence/", "non-startup-tech/")):
             return ""
         href = f"{REPOSITORY_URL}/blob/main/{quote(normalized, safe='/.#')}"
@@ -495,7 +540,7 @@ def render_acknowledgements(people: list[dict]) -> str:
         sections.append(
             f'''<section class="ack-person" id="assistant-{index}">
   <div class="ack-person-head">
-    <p class="kicker">Assistant / {index:02d}</p>
+    <p class="kicker">Assistant / {escape(person["number"])}</p>
     <h2>{escape(person["name"])}</h2>
     <p>{escape(person["description"])}</p>
     <dl class="ack-meta">{metadata}</dl>
@@ -505,7 +550,7 @@ def render_acknowledgements(people: list[dict]) -> str:
         )
 
     if not sections:
-        sections.append('<p class="empty-state">ACKNOWLEDGEMENTS.md中暂无可公开展示的鸣谢记录。</p>')
+        sections.append('<p class="empty-state">ACKNOWLEDGEMENTS/目录中暂无可公开展示的鸣谢记录。</p>')
     return "\n".join(
         (
             page_head("特别鸣谢", "idea-tree项目AI助手及其公开工作记录。"),
@@ -516,8 +561,8 @@ def render_acknowledgements(people: list[dict]) -> str:
     <h1>特别鸣谢</h1>
     <p class="detail-lede">记录每一位AI助手在项目中的工作，也记录人类审核、接续与协作留下的轨迹。</p>
     <nav class="ack-nav" aria-label="鸣谢名单"><ol>{navigation}</ol></nav>
-    <p class="ack-source">本页由ACKNOWLEDGEMENTS.md生成；私人证据附件、储备区及备份材料不在此发布。</p>
-    <a class="source-link" href="{REPOSITORY_URL}/blob/main/ACKNOWLEDGEMENTS.md" target="_blank" rel="noopener noreferrer">查看原始记录 ↗</a>
+    <p class="ack-source">本页由ACKNOWLEDGEMENTS/目录名录及各助手编号文件生成；私人证据附件、储备区及备份材料不在此发布。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/tree/main/ACKNOWLEDGEMENTS" target="_blank" rel="noopener noreferrer">查看原始记录 ↗</a>
   </aside>
   <div class="acknowledgements-content">{''.join(sections)}</div>
 </main>''',

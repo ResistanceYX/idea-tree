@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from calendar import monthrange
 from collections import Counter
 from datetime import date, datetime
 from difflib import unified_diff
@@ -23,6 +24,19 @@ ARCHIVE_TYPES = {"预审", "验尸"}
 REVIVAL_STATUSES = {"死透", "复活候选", "已复活"}
 RECORD_FIELDS = {"复核状态", "复核结论", "复核后日期", "备注", "履历"}
 HISTORY_FIELDS = {"日期", "档案类型", "复活状态", "说明"}
+REVIEW_PERIOD_BUCKETS = (
+    "三个月内",
+    "三个月",
+    "三至六个月",
+    "六个月",
+    "六至十二个月",
+    "一年",
+    "一年至两年",
+    "两年",
+    "两年至三年",
+    "三年",
+    "三年至五年",
+)
 
 
 def markdown_cell(value: object) -> str:
@@ -52,6 +66,54 @@ def valid_date(value: object) -> bool:
     except ValueError:
         return False
     return True
+
+
+def add_months(value: date, months: int) -> date:
+    """Add calendar months, clamping only a nonexistent month-end day."""
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, min(value.day, monthrange(year, month)[1]))
+
+
+def review_period_bucket(baseline: date, expiry: date) -> str:
+    """Classify the current review interval without converting months to fixed days."""
+    if expiry < baseline:
+        raise ValueError("死因保质期早于统计基准日期")
+    if expiry < add_months(baseline, 3):
+        return "三个月内"
+    if expiry == add_months(baseline, 3):
+        return "三个月"
+    if expiry < add_months(baseline, 6):
+        return "三至六个月"
+    if expiry == add_months(baseline, 6):
+        return "六个月"
+    if expiry < add_months(baseline, 12):
+        return "六至十二个月"
+    if expiry == add_months(baseline, 12):
+        return "一年"
+    if expiry < add_months(baseline, 24):
+        return "一年至两年"
+    if expiry == add_months(baseline, 24):
+        return "两年"
+    if expiry < add_months(baseline, 36):
+        return "两年至三年"
+    if expiry == add_months(baseline, 36):
+        return "三年"
+    if expiry <= add_months(baseline, 60):
+        return "三年至五年"
+    raise ValueError("死因保质期晚于统计基准日期起五年")
+
+
+def required_date(value: object, field: str, node_number: str) -> date:
+    """Parse one date needed by the generated review-period statistics."""
+    text = date_text(value)
+    if not text:
+        raise ValueError(f"节点 {node_number} 的{field}不是有效的 YYYY-MM-DD 日期")
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise ValueError(f"节点 {node_number} 的{field}不是有效的 YYYY-MM-DD 日期") from exc
 
 
 def load_nodes(root: Path) -> list[tuple[Path, dict]]:
@@ -185,12 +247,21 @@ def render_review(root: Path) -> str:
     )
 
     status_counts: Counter[str] = Counter()
+    period_counts: Counter[str] = Counter()
     rows: list[str] = []
     for file, data in nodes:
         node_number, node_id = node_identity(file, data)
         record = human_records.get(node_id, {})
         status = record.get("复核状态", "待复核")
         status_counts[status] += 1
+        baseline_field = "复核后日期" if record.get("复核后日期") not in (None, "") else "审核日期"
+        baseline_value = record.get("复核后日期") if baseline_field == "复核后日期" else data.get("审核日期")
+        baseline = required_date(baseline_value, baseline_field, node_number)
+        expiry = required_date(data.get("死因保质期"), "死因保质期", node_number)
+        try:
+            period_counts[review_period_bucket(baseline, expiry)] += 1
+        except ValueError as exc:
+            raise ValueError(f"节点 {node_number}：{exc}") from exc
         title = markdown_cell(data.get("标题", node_id))
         rows.append(
             "| "
@@ -226,6 +297,17 @@ def render_review(root: Path) -> str:
         "6. 复核结论可填写：维持原判｜调整死因｜调整置信度｜调整复活状态｜修复证据；同时发生多项时用“、”连接，尚未复核填“—”。",
         "7. 复核后日期是实际完成复核的日期，不是新的死因保质期；新的死因保质期以节点YAML为准。",
         "8. 选择暂缓时，必须在备注中写明原因和下次检查条件。新的死因保质期仍须遵守节点格式规范，所有判断性修改均由人工审核定案。",
+        "",
+        "## 当前复核周期分布",
+        "",
+        "> 每个正式节点按当前死因保质期与统计基准日期的日历间隔只计入一档：有已完成复核记录时取最新复核后日期，否则取节点审核日期；多次复核不累加。",
+        "> 三个月内指不足三个月；带“至”的中间区间均不含两端，单独列出的三个月、六个月、一年、两年和三年按日历日期判断；三年至五年不含三年、包含五年。",
+        "> 本统计只反映当前复核周期设定，用于发现模板化集中，不表示剩余时间或逾期状态，也不自动修改日期或节点结论。",
+        "",
+        "| 当前复核周期 | 节点数 |",
+        "|---|---:|",
+        *(f"| {bucket} | {period_counts[bucket]} |" for bucket in REVIEW_PERIOD_BUCKETS),
+        f"| **合计** | **{len(nodes)}** |",
         "",
         "## 复核清单",
         "",

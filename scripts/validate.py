@@ -312,7 +312,6 @@ def validate_repository(root: Path) -> dict[str, object]:
             names = "、".join(file.name for file in owners)
             error("nodes/", f"编号 `{number}` 重复：{names}")
 
-    known_ids = set(ids)
     known_refs = set()
     ref_to_file = {}
     for file, data in nodes.items():
@@ -326,19 +325,14 @@ def validate_repository(root: Path) -> dict[str, object]:
     for file, data in nodes.items():
         node_id = data.get("id")
         location = f"nodes/{file.name}"
-        if isinstance(node_id, str) and "_" in node_id:
-            parent_id, child_name = node_id.rsplit("_", 1)
-            if parent_id not in known_ids:
-                error(location, f"直接派生节点缺少对应母题节点：`{parent_id}`")
-            if not NORMAL_ID_RE.fullmatch(child_name):
-                error(location, "派生节点的子题短名只能使用英文、数字和连字符")
-
         relations = data.get("相关节点", [])
         if relations is None:
             relations = []
         if not isinstance(relations, list):
             error(location, "相关节点必须是数组")
             continue
+
+        direct_parent_refs: list[str] = []
         for relation in relations:
             if not isinstance(relation, dict):
                 error(location, "相关节点条目必须是映射")
@@ -350,6 +344,8 @@ def validate_repository(root: Path) -> dict[str, object]:
             if not nonempty_string(target) or not nonempty_string(relation.get("关系")):
                 error(location, "相关节点条目必须包含非空节点和关系")
                 continue
+            if relation.get("关系") == "直接母题":
+                direct_parent_refs.append(target)
             if target == file.stem:
                 error(location, "相关节点不得指向自身")
             if target not in known_refs:
@@ -362,6 +358,28 @@ def validate_repository(root: Path) -> dict[str, object]:
             )
             if not has_return:
                 error(location, f"相关节点 `{target}` 缺少回程声明")
+
+        if not isinstance(node_id, str):
+            continue
+        if "_" in node_id:
+            child_name = node_id.rsplit("_", 1)[1]
+            if not NORMAL_ID_RE.fullmatch(child_name):
+                error(location, "派生节点的子题短名只能使用英文、数字和连字符")
+            if len(direct_parent_refs) != 1:
+                error(location, "直接派生节点必须且只能声明一个直接母题")
+                continue
+            parent_ref = direct_parent_refs[0]
+            parent_file = ref_to_file.get(parent_ref)
+            if parent_file is None:
+                error(location, f"直接派生节点缺少对应母题节点：`{parent_ref}`")
+                continue
+            parent_id = nodes[parent_file].get("id")
+            if isinstance(parent_id, str) and NORMAL_ID_RE.fullmatch(child_name):
+                expected_id = "_".join([*parent_id.split("_")[-2:], child_name])
+                if node_id != expected_id:
+                    error(location, f"直接派生节点id不符合两级滚动母题前缀，应为：`{expected_id}`")
+        elif direct_parent_refs:
+            error(location, "声明直接母题的节点必须使用母题前缀和下划线子题短名")
 
     readme = root / "README.md"
     if not readme.is_file():

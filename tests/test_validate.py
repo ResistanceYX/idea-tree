@@ -99,17 +99,74 @@ id: broken-node
     def test_derived_id_requires_existing_parent(self) -> None:
         root = self.make_repo()
         parent = root / "nodes" / "0001-parent.yaml"
-        parent.write_text(node_text("parent", "母题"), encoding="utf-8")
-        (root / "nodes" / "0002-parent_child.yaml").write_text(
-            node_text("parent_child", "直接派生子题", "0002"), encoding="utf-8"
+        parent.write_text(
+            node_text("parent", "母题")
+            + "相关节点:\n  - 节点: 0002-parent_child\n    关系: 直接派生\n",
+            encoding="utf-8",
         )
+        child = root / "nodes" / "0002-parent_child.yaml"
+        child_text = (
+            node_text("parent_child", "直接派生子题", "0002")
+            + "相关节点:\n  - 节点: 0001-parent\n    关系: 直接母题\n"
+        )
+        child.write_text(child_text, encoding="utf-8")
 
         valid = validate_repository(root)
         self.assertEqual([], valid["errors"])
 
+        child.write_text(node_text("parent_child", "直接派生子题", "0002"), encoding="utf-8")
+        missing_declaration = validate_repository(root)
+        self.assertIn("必须且只能声明一个直接母题", "\n".join(missing_declaration["errors"]))
+
+        child.write_text(child_text, encoding="utf-8")
         parent.unlink()
         invalid = validate_repository(root)
         self.assertIn("缺少对应母题节点", "\n".join(invalid["errors"]))
+
+    def test_derived_ids_roll_to_only_two_parent_prefixes(self) -> None:
+        root = self.make_repo()
+        chain = [
+            ("0001", "root", None, "0002-root_child"),
+            ("0002", "root_child", "0001-root", "0003-root_child_grandchild"),
+            ("0003", "root_child_grandchild", "0002-root_child", "0004-child_grandchild_greatgrandchild"),
+            ("0004", "child_grandchild_greatgrandchild", "0003-root_child_grandchild", None),
+        ]
+        files = {}
+        for number, node_id, parent, child in chain:
+            text = node_text(node_id, node_id, number)
+            relations = []
+            if parent:
+                relations.append(f"  - 节点: {parent}\n    关系: 直接母题\n")
+            if child:
+                relations.append(f"  - 节点: {child}\n    关系: 直接派生\n")
+            if relations:
+                text += "相关节点:\n" + "".join(relations)
+            file = root / "nodes" / f"{number}-{node_id}.yaml"
+            file.write_text(text, encoding="utf-8")
+            files[number] = file
+
+        self.assertEqual([], validate_repository(root)["errors"])
+
+        old_id = "root_child_grandchild_greatgrandchild"
+        old_stem = f"0004-{old_id}"
+        files["0003"].write_text(
+            files["0003"].read_text(encoding="utf-8").replace(
+                "0004-child_grandchild_greatgrandchild", old_stem
+            ),
+            encoding="utf-8",
+        )
+        files["0004"].unlink()
+        (root / "nodes" / f"{old_stem}.yaml").write_text(
+            node_text(old_id, old_id, "0004")
+            + "相关节点:\n  - 节点: 0003-root_child_grandchild\n    关系: 直接母题\n",
+            encoding="utf-8",
+        )
+
+        result = validate_repository(root)
+        self.assertIn(
+            "两级滚动母题前缀，应为：`child_grandchild_greatgrandchild`",
+            "\n".join(result["errors"]),
+        )
 
     def test_filename_requires_exactly_four_numeric_prefix_characters(self) -> None:
         for filename in ("test-node.yaml", "ab01-test-node.yaml", "123-test-node.yaml", "00012-test-node.yaml"):

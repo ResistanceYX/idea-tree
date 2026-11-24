@@ -3,12 +3,19 @@ import io
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
 import yaml
 
-from scripts.generate_review import generate_review, main, render_review, review_is_current
+from scripts.generate_review import (
+    generate_review,
+    main,
+    render_review,
+    review_is_current,
+    review_period_bucket,
+)
 
 
 def node_text(
@@ -74,6 +81,10 @@ class ReviewGeneratorTests(unittest.TestCase):
         self.assertIn("| 待复核 | — | — | — |", content)
         self.assertIn("| 已复核 | 维持原判 | 2026-02-01 | 已完成测试复核 |", content)
         self.assertIn("待复核1个，已复核1个，暂缓0个", content)
+        self.assertIn("## 当前复核周期分布", content)
+        self.assertIn("| 一年 | 1 |", content)
+        self.assertIn("| 一年至两年 | 1 |", content)
+        self.assertIn("| **合计** | **2** |", content)
         self.assertTrue(review_is_current(root))
 
     def test_check_detects_new_node_without_overwriting_human_record(self) -> None:
@@ -108,6 +119,31 @@ class ReviewGeneratorTests(unittest.TestCase):
         updated = generate_review(root)
         self.assertIn("新增节点", updated)
         self.assertIn("等待公开来源更新后复核", updated)
+
+    def test_review_period_buckets_use_calendar_boundaries(self) -> None:
+        baseline = date(2024, 2, 29)
+        cases = [
+            ("2024-05-28", "三个月内"),
+            ("2024-05-29", "三个月"),
+            ("2024-05-30", "三至六个月"),
+            ("2024-08-29", "六个月"),
+            ("2024-08-30", "六至十二个月"),
+            ("2025-02-28", "一年"),
+            ("2025-03-01", "一年至两年"),
+            ("2026-02-28", "两年"),
+            ("2026-03-01", "两年至三年"),
+            ("2027-02-28", "三年"),
+            ("2027-03-01", "三年至五年"),
+            ("2029-02-28", "三年至五年"),
+        ]
+        for expiry, expected in cases:
+            with self.subTest(expiry=expiry, expected=expected):
+                self.assertEqual(expected, review_period_bucket(baseline, date.fromisoformat(expiry)))
+
+        with self.assertRaisesRegex(ValueError, "早于统计基准日期"):
+            review_period_bucket(baseline, date(2024, 2, 28))
+        with self.assertRaisesRegex(ValueError, "晚于统计基准日期起五年"):
+            review_period_bucket(baseline, date(2029, 3, 1))
 
     def test_invalid_or_orphan_human_records_are_rejected(self) -> None:
         root = self.make_repo()

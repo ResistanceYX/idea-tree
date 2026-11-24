@@ -16,5 +16,5 @@
 
 | 对应节点 | 实现仓库 | 已核实的实现范围与边界 |
 |---|---|---|
-| [0014 开源知识库节点AI视频生成器](nodes/0014-knowledge-base-ai-video-generator.yaml) | [0014-knowledge-base-ai-video-generator](https://github.com/ResistanceYX/0014-knowledge-base-ai-video-generator) | 当前仅覆盖M1“只出脚本”垂直切片：将单个节点转换为可编辑、可重新校验的旁白、分镜和逐句来源表；不包含配音、完整渲染、WebUI、批量生成或自动发布，不代表0014已完整实现。 |
+| [0014 开源知识库节点AI视频生成器](nodes/0014-knowledge-base-ai-video-generator.yaml) | [0014-knowledge-base-ai-video-generator](https://github.com/ResistanceYX/0014-knowledge-base-ai-video-generator) | 当前覆盖M1—M3：将单个节点生成带逐句来源的旁白、六类可编辑Remotion场景与工程，支持显式edge-tts配音、真实音频片段时间轴、可人工修改的字幕、单场景或完整MP4、AI声明、成本记录与发布前检查；仍需人工审校和听审，不含WebUI、批量生成、数字人、库存素材或自动发布，不代表真实创作验收或0014全部目标已完成。 |
 | [0029 开源裁判文书形式异常检测反馈工具](nodes/0029-open-source-judgment-formal-error-feedback-agent.yaml) | [0029-open-source-judgment-formal-error-feedback-agent](https://github.com/ResistanceYX/0029-open-source-judgment-formal-error-feedback-agent) | 当前覆盖8条确定性规则的形式异常线索检查、人工复核和反馈草稿；只输出待核线索，不认定实质错判，不抓取平台文书，也不自动提交反馈。 |

@@ -45,7 +45,7 @@ PUBLIC_EVIDENCE = (
     },
 )
 # The editor-approved reserve registry is data, not code; list order is page order.
-PUBLIC_RESERVE_REGISTRY = "non-startup-tech/public_reserve.yaml"
+PUBLIC_RESERVE_REGISTRY = "non-startup-tech/00-public_reserve.yaml"
 
 
 def text(value: object) -> str:
@@ -728,11 +728,11 @@ def render_public_reserve(entries: list[dict]) -> str:
     <h2 id="reserve-list-title">储备清单</h2>
     <p class="result-count">共 {len(entries)} 条储备</p>
   </div>
-  <p class="sort-note">按public_reserve.yaml白名单顺序排列。这里不复制完整YAML；公开导航不代表相关技术、价值或风险结论已经通过实质审核。</p>
+  <p class="sort-note">按00-public_reserve.yaml白名单顺序排列。这里不复制完整YAML；公开导航不代表相关技术、价值或风险结论已经通过实质审核。</p>
   <ol class="reserve-list">{rows}</ol>
 </section>'''
     else:
-        registry = '<p class="empty-state">public_reserve.yaml中暂无可公开展示的非创业技术储备。</p>'
+        registry = '<p class="empty-state">00-public_reserve.yaml中暂无可公开展示的非创业技术储备。</p>'
 
     return "\n".join(
         (
@@ -744,7 +744,7 @@ def render_public_reserve(entries: list[dict]) -> str:
     <h1>非创业技术储备</h1>
     <p class="detail-lede">只展示经主编确认可公开的储备稿标题与一句话，完整论证与证据仍留在GitHub原始档案。</p>
     <p class="definition">本页不是正式节点索引。条目不参与正式编号、统计、INDEX、REVIEW、科技树、公开JSON或首页搜索，也不生成正式节点详情页。</p>
-    <p class="ack-source">本页按non-startup-tech/public_reserve.yaml中的显式白名单生成；新增储备文件不会自动登记，白名单或元数据异常会阻断构建。</p>
+    <p class="ack-source">本页按non-startup-tech/00-public_reserve.yaml中的显式白名单生成；新增储备文件不会自动登记，白名单或元数据异常会阻断构建。</p>
     <a class="source-link" href="{REPOSITORY_URL}/blob/main/{PUBLIC_RESERVE_REGISTRY}" target="_blank" rel="noopener noreferrer">查看原始白名单 ↗</a>
   </aside>
   <div class="implementations-content reserve-content">{registry}</div>

@@ -87,12 +87,23 @@ class SiteGeneratorTests(unittest.TestCase):
 
 ## 特别鸣谢
 
-完整记录见 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)。
+完整记录见 [ACKNOWLEDGEMENTS/README.md](ACKNOWLEDGEMENTS/README.md)。
 """,
             encoding="utf-8",
         )
-        (root / "ACKNOWLEDGEMENTS.md").write_text(
+        acknowledgements = root / "ACKNOWLEDGEMENTS"
+        acknowledgements.mkdir()
+        (acknowledgements / "README.md").write_text(
             """# 特别鸣谢
+
+| 助手编号 | 助手 | 特别鸣谢文档 |
+|---|---|---|
+| 001 | 测试助手 | [001-测试助手.md](001-测试助手.md) |
+""",
+            encoding="utf-8",
+        )
+        (acknowledgements / "001-测试助手.md").write_text(
+            """# 特别鸣谢 · 测试助手
 
 **测试助手**：用于验证鸣谢页生成
 - 模型：测试模型
@@ -101,9 +112,9 @@ class SiteGeneratorTests(unittest.TestCase):
 
 | 编号 | 工作 | 链接 |
 |---|---|---|
-| 1 | 初稿、复检 | [nodes/0001-alpha.yaml](nodes/0001-alpha.yaml) |
-| 2 | 私人附件 | [evidence/private.xlsx](evidence/private.xlsx) |
-| 3 | 储备区条目 | [non-startup-tech/reserve.yaml](non-startup-tech/reserve.yaml) |
+| 1 | 初稿、复检 | [nodes/0001-alpha.yaml](../nodes/0001-alpha.yaml)、[.github/workflows/pages.yml](../.github/workflows/pages.yml) |
+| 2 | 私人附件 | [evidence/private.xlsx](../evidence/private.xlsx) |
+| 3 | 储备区条目 | [non-startup-tech/reserve.yaml](../non-startup-tech/reserve.yaml) |
 """,
             encoding="utf-8",
         )
@@ -478,16 +489,60 @@ class SiteGeneratorTests(unittest.TestCase):
         content = render_acknowledgements(people)
 
         self.assertEqual(len(people), 1)
+        self.assertEqual(people[0]["number"], "001")
         self.assertEqual(people[0]["name"], "测试助手")
         self.assertEqual(len(people[0]["works"]), 1)
         self.assertIn('href="#assistant-1"', content)
+        self.assertIn("Assistant / 001", content)
         self.assertIn("测试模型", content)
-        self.assertIn("本页由ACKNOWLEDGEMENTS.md生成", content)
-        self.assertIn("/blob/main/ACKNOWLEDGEMENTS.md", content)
+        self.assertIn("本页由ACKNOWLEDGEMENTS/目录名录及各助手编号文件生成", content)
+        self.assertIn("/tree/main/ACKNOWLEDGEMENTS", content)
+        self.assertIn("/blob/main/.github/workflows/pages.yml", content)
+        self.assertNotIn("/blob/main/github/workflows/pages.yml", content)
         self.assertNotIn("evidence/", content)
         self.assertNotIn("non-startup-tech/", content)
-        (root / "ACKNOWLEDGEMENTS.md").unlink()
-        self.assertEqual(parse_acknowledgements(root), [])
+        (root / "ACKNOWLEDGEMENTS.md").write_text("**旧文件助手**：不得重复读取\n", encoding="utf-8")
+        self.assertEqual([person["name"] for person in parse_acknowledgements(root)], ["测试助手"])
+        (root / "ACKNOWLEDGEMENTS").rename(root / "missing-acknowledgements")
+        with self.assertRaisesRegex(ValueError, "特别鸣谢目录或名录缺失"):
+            parse_acknowledgements(root)
+
+    def test_acknowledgement_files_must_match_the_ordered_registry(self) -> None:
+        root = self.make_repo()
+        directory = root / "ACKNOWLEDGEMENTS"
+        (directory / "002-乙助手.md").write_text(
+            """# 特别鸣谢 · 乙助手
+
+**乙助手**：用于验证助手编号顺序
+- 模型：测试模型
+- 休眠时间：未知
+- 作品：如下表
+
+| 编号 | 工作 | 链接 |
+|---|---|---|
+| 1 | 初稿、复检 | [README.md](../README.md) |
+""",
+            encoding="utf-8",
+        )
+        registry = directory / "README.md"
+        registry.write_text(
+            registry.read_text(encoding="utf-8")
+            + "| 002 | 乙助手 | [002-乙助手.md](002-乙助手.md) |\n",
+            encoding="utf-8",
+        )
+
+        people = parse_acknowledgements(root)
+        self.assertEqual([person["number"] for person in people], ["001", "002"])
+        self.assertEqual([person["name"] for person in people], ["测试助手", "乙助手"])
+
+        (directory / "001-重号助手.md").write_text("重号\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "助手编号重复"):
+            parse_acknowledgements(root)
+        (directory / "001-重号助手.md").unlink()
+
+        (directory / "002-乙助手.md").unlink()
+        with self.assertRaisesRegex(ValueError, "名录必须与编号文件"):
+            parse_acknowledgements(root)
 
     def test_implementations_are_parsed_and_private_rows_are_omitted(self) -> None:
         root = self.make_repo()

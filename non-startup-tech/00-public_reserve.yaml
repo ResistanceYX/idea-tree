@@ -1,0 +1,14 @@
+# 静态站“非创业技术储备”导航白名单，由主编人工维护。
+# 文件名前缀00-仅用于目录排序，不是正式节点编号或储备编号。
+# 只登记经确认可公开标题和一句话的本目录YAML文件名；列表顺序即页面顺序。
+# 新增储备稿不会自动登记；确认公开后，在下方增加一行“- 文件名.yaml”。
+# 删除一行只取消静态站导航，不删除GitHub原文或提交历史。
+公开导航:
+  - critical-infrastructure-drone-array-air-defense.yaml
+  - envisioned-project-collaboration-platform.yaml
+  - high-seas-nuclear-abm.yaml
+  - nuclear-leo-indiscriminate-space-denial.yaml
+  - open-data-statistical-spy-satellite-identification.yaml
+  - uav-ugv-relayed-signal-transmission.yaml
+  - unauthorized-external-attack-simulation-agent-mode.yaml
+  - unmanned-relay-weapon-range-extension.yaml

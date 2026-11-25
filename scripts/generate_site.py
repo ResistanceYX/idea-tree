@@ -9,7 +9,7 @@ import json
 import re
 import shutil
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -300,8 +300,9 @@ def page_head(title: str, description: str, prefix: str = "") -> str:
 <a class="skip-link" href="#main-content">跳到正文</a>"""
 
 
-def page_header(prefix: str = "", detail: bool = False) -> str:
+def page_header(prefix: str = "", detail: bool = False, current: str = "") -> str:
     index_label = "返回节点索引" if detail else "节点索引"
+    graph_current = ' aria-current="page"' if current == "graph" else ""
     return f"""<header class="topbar">
   <div class="topbar-inner">
     <div class="brand-lockup">
@@ -311,6 +312,7 @@ def page_header(prefix: str = "", detail: bool = False) -> str:
     </div>
     <nav class="topnav" aria-label="主导航">
       <a href="{prefix}index.html">{index_label}</a>
+      <a href="{prefix}graph.html"{graph_current}>科技树</a>
       <a href="{REPOSITORY_URL}" target="_blank" rel="noopener noreferrer">GitHub仓库 ↗</a>
     </nav>
   </div>
@@ -1147,7 +1149,8 @@ def render_index(
       <a class="mobile-filter-link distribution-return" id="distribution-return" href="#catalog-title">返回节点列表 ↑</a>
     </section>
     {render_recent_reviews(records, reviews)}
-    <a class="acknowledgements-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
+    <a class="acknowledgements-link graph-link" href="graph.html"><span>科技树</span><span>查看直接派生、相关关系与孤立节点 →</span></a>
+    <a class="acknowledgements-link acknowledgements-page-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
     <a class="acknowledgements-link implementations-link" href="implementations.html"><span>简易实现仓库</span><span>查看节点对应的实现与边界 →</span></a>
     <a class="acknowledgements-link reserve-link" href="non-startup-tech.html"><span>非创业技术储备</span><span>查看储备标题、简介与GitHub原文 →</span></a>
   </aside>
@@ -1333,7 +1336,7 @@ def render_detail(
     <section class="content-section" id="parts"><h2>可拆零件</h2><ul class="parts-list">{parts_html}</ul></section>
     {''.join(extra_sections)}
     {render_review_details(review)}
-    {f'<section class="content-section" id="relations"><h2>相关节点</h2><ul class="relations-list">{"".join(relations_html)}</ul></section>' if relations_html else ''}
+    {f'<section class="content-section" id="relations"><div class="section-heading-row"><h2>相关节点</h2><a class="relation-graph-link no-print" href="../graph.html#node-{escape(node_id)}">在科技树中查看 →</a></div><ul class="relations-list">{"".join(relations_html)}</ul></section>' if relations_html else ''}
   </div>
 </main>
 <script src="../assets/site.js" defer></script>""",
@@ -1378,6 +1381,105 @@ def render_public_evidence_page(
     )
 
 
+def public_graph_data(records: list[tuple[Path, dict]]) -> dict:
+    """Derive a deterministic public graph only from explicit formal-node relations."""
+    records = sorted(records, key=node_sort_key)
+    nodes: dict[str, dict] = {}
+    ref_to_id: dict[str, str] = {}
+    for file, data in records:
+        number, node_id = node_identity(file, data)
+        nodes[node_id] = {
+            "编号": number,
+            "id": node_id,
+            "标题": text(data.get("标题", node_id)),
+            "领域": text(data.get("领域")),
+            "档案类型": text(data.get("档案类型")),
+            "复活状态": text(data.get("复活状态")),
+            "页面": f"nodes/{node_id}.html",
+            "连接数": 0,
+            "孤立": True,
+        }
+        ref_to_id[file.stem] = node_id
+
+    pairs: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for file, data in records:
+        _number, source_id = node_identity(file, data)
+        for relation in data.get("相关节点", []) or []:
+            if not isinstance(relation, dict):
+                continue
+            target_ref = text(relation.get("节点"))
+            target_id = ref_to_id.get(target_ref)
+            if target_id is None:
+                raise ValueError(f"关系图目标不存在：`{file.stem}` → `{target_ref}`")
+            if target_id == source_id:
+                raise ValueError(f"关系图不接受自引用：`{file.stem}`")
+            declaration = {
+                "来源": source_id,
+                "目标": target_id,
+                "关系": text(relation.get("关系")),
+                "说明": text(relation.get("说明")),
+            }
+            pairs[tuple(sorted((source_id, target_id)))].append(declaration)
+
+    def node_order(node_id: str) -> tuple[str, str]:
+        return nodes[node_id]["编号"], node_id
+
+    edges = []
+    for pair in sorted(pairs, key=lambda item: tuple(node_order(node_id) for node_id in item)):
+        declarations = sorted(
+            pairs[pair],
+            key=lambda item: (node_order(item["来源"]), node_order(item["目标"]), item["关系"]),
+        )
+        mother_directions = {
+            (item["目标"], item["来源"])
+            for item in declarations
+            if item["关系"] == "直接母题"
+        }
+        derived_directions = {
+            (item["来源"], item["目标"])
+            for item in declarations
+            if item["关系"].startswith("直接派生")
+        }
+        directed = bool(mother_directions or derived_directions)
+        if directed:
+            if (
+                len(mother_directions) != 1
+                or len(derived_directions) != 1
+                or mother_directions != derived_directions
+            ):
+                labels = "；".join(
+                    f"{nodes[item['来源']]['编号']}-{item['来源']} → "
+                    f"{nodes[item['目标']]['编号']}-{item['目标']}：{item['关系']}"
+                    for item in declarations
+                )
+                raise ValueError(f"直接派生关系方向声明不完整或矛盾：{labels}")
+            source, target = next(iter(mother_directions))
+            kind = "derivation"
+        else:
+            source, target = sorted(pair, key=node_order)
+            kind = "relation"
+        left, right = sorted(pair, key=node_order)
+        edges.append(
+            {
+                "id": f"{nodes[left]['编号']}-{nodes[right]['编号']}",
+                "source": source,
+                "target": target,
+                "kind": kind,
+                "directed": directed,
+                "declarations": declarations,
+            }
+        )
+        nodes[source]["连接数"] += 1
+        nodes[target]["连接数"] += 1
+
+    for node in nodes.values():
+        node["孤立"] = node["连接数"] == 0
+    return {
+        "nodes": [nodes[node_id] for node_id in sorted(nodes, key=node_order)],
+        "edges": edges,
+    }
+
+
 def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
     result = []
     for file, data in records:
@@ -1404,6 +1506,139 @@ def public_node_data(records: list[tuple[Path, dict]]) -> list[dict]:
             item["结论边界"] = searchable_text(data.get("结论边界"))
         result.append(item)
     return result
+
+
+def render_graph(records: list[tuple[Path, dict]]) -> str:
+    """Render an enhanced SVG explorer plus a complete no-JavaScript relation list."""
+    graph = public_graph_data(records)
+    nodes = graph["nodes"]
+    edges = graph["edges"]
+    node_by_id = {node["id"]: node for node in nodes}
+    declarations_by_node: dict[str, list[dict]] = defaultdict(list)
+    for edge in edges:
+        for declaration in edge["declarations"]:
+            declarations_by_node[declaration["来源"]].append(declaration)
+
+    def render_list_entry(node: dict) -> str:
+        node_id = node["id"]
+        relation_items = []
+        declarations = sorted(
+            declarations_by_node.get(node_id, []),
+            key=lambda item: (node_by_id[item["目标"]]["编号"], item["目标"], item["关系"]),
+        )
+        for declaration in declarations:
+            target = node_by_id[declaration["目标"]]
+            note = declaration["说明"]
+            note_html = f'<p class="relation-note">{escape(note)}</p>' if note else ""
+            relation_items.append(
+                f'<li><a href="nodes/{escape(target["id"])}.html">#{escape(target["编号"])} · {escape(target["标题"])}</a><br>'
+                f'<span class="relation-type">关系：{escape(declaration["关系"])}</span>{note_html}</li>'
+            )
+        relations_html = (
+            f'<ul class="relations-list graph-entry-relations">{"".join(relation_items)}</ul>'
+            if relation_items
+            else '<p class="graph-no-relations">暂无显式关系；节点仍保留在完整档案中。</p>'
+        )
+        return f"""<article class="graph-list-entry" id="node-{escape(node_id)}" tabindex="-1">
+  <div class="graph-entry-heading">
+    <div>
+      <p class="record-id">#{escape(node['编号'])} · {escape(node_id)}</p>
+      <h3><a href="nodes/{escape(node_id)}.html">{escape(node['标题'])}</a></h3>
+    </div>
+    <a class="graph-focus-link" href="#node-{escape(node_id)}" data-node-focus="{escape(node_id)}" hidden>在图中定位 ↑</a>
+  </div>
+  <p class="graph-entry-meta">{escape(node['领域'])} · {escape(node['档案类型'])} · {escape(node['复活状态'])} · {node['连接数']} 对关系</p>
+  {relations_html}
+</article>"""
+
+    groups = []
+    for isolated, heading, group_id in (
+        (False, "已接入关系网络", "connected-nodes"),
+        (True, "孤立节点", "isolated-nodes"),
+    ):
+        selected = [node for node in nodes if node["孤立"] is isolated]
+        groups.append(
+            f"""<section class="graph-list-group" aria-labelledby="{group_id}">
+  <h3 id="{group_id}">{heading} <span>{len(selected)}</span></h3>
+  {''.join(render_list_entry(node) for node in selected)}
+</section>"""
+        )
+
+    direct_count = sum(edge["kind"] == "derivation" for edge in edges)
+    connected_count = sum(not node["孤立"] for node in nodes)
+    isolated_count = len(nodes) - connected_count
+    stats = "".join(
+        f'<div class="stat"><strong>{value}</strong><span>{label}</span></div>'
+        for value, label in (
+            (len(nodes), "正式节点"),
+            (len(edges), "去重关系"),
+            (direct_count, "直接派生"),
+            (connected_count, "接入节点"),
+            (isolated_count, "孤立节点"),
+        )
+    )
+    return "\n".join(
+        (
+            page_head("科技树关系图", "由正式节点YAML自动派生的直接派生、相关关系与孤立节点完整列表。"),
+            page_header(current="graph"),
+            f"""<main id="main-content" class="shell graph-layout">
+  <section class="graph-intro" aria-labelledby="graph-title">
+    <p class="kicker">Relation map / derived from YAML</p>
+    <h1 class="archive-title" id="graph-title">科技树</h1>
+    <p class="lede">从正式档案中看见派生主干、协作节点簇，以及尚未连接的独立点子。</p>
+    <p class="definition">金色实线箭头只表示双端确认的直接派生；青色虚线表示其他显式关系。关系多少不代表节点价值，孤立也不等于无效。</p>
+    <div class="stats graph-stats" aria-label="科技树关系统计">{stats}</div>
+    <div class="graph-view-controls" id="graph-view-controls" role="group" aria-label="科技树视图" hidden>
+      <button type="button" class="graph-view-button" data-graph-view="graph" aria-pressed="false">图形视图</button>
+      <button type="button" class="graph-view-button" data-graph-view="list" aria-pressed="false">完整列表</button>
+    </div>
+    <p class="graph-status" id="graph-status" role="status" aria-live="polite" hidden></p>
+  </section>
+  <section class="graph-workspace" id="graph-workspace" aria-label="交互式科技树" hidden>
+    <div class="graph-map-panel">
+      <div class="graph-toolbar" aria-label="关系图筛选">
+        <div class="field graph-search-field">
+          <label for="graph-search">搜索标题、编号或id</label>
+          <input id="graph-search" type="search" placeholder="例如：0044、代码注释、Agent" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="graph-kind">关系类型</label>
+          <select id="graph-kind">
+            <option value="all">全部关系</option>
+            <option value="derivation">仅直接派生</option>
+            <option value="relation">仅一般相关</option>
+          </select>
+        </div>
+        <label class="check-option graph-isolated-option"><input id="graph-show-isolated" type="checkbox"><span>显示无连接节点</span></label>
+        <button class="reset-button" id="graph-reset" type="button">复位视图</button>
+      </div>
+      <div class="graph-legend" aria-label="图例">
+        <span><i class="legend-line derivation" aria-hidden="true"></i>直接派生 · 有方向</span>
+        <span><i class="legend-line relation" aria-hidden="true"></i>一般相关 · 无方向</span>
+        <span>选择节点可聚焦相邻关系</span>
+      </div>
+      <div class="graph-canvas" id="graph-canvas"></div>
+    </div>
+    <aside class="graph-inspector" id="graph-inspector" aria-label="选中节点档案">
+      <p class="kicker">Node inspector</p>
+      <h2>选择一个节点</h2>
+      <p>在图中选择节点，查看完整名称、状态与双端关系说明。也可使用键盘 Tab 移动焦点，Enter 或空格选择。</p>
+    </aside>
+  </section>
+  <noscript><p class="notice">当前未启用 JavaScript。以下是由正式 YAML 直接生成的完整静态关系列表，所有档案链接仍可使用。</p></noscript>
+  <section class="graph-list-section" id="graph-list" aria-labelledby="graph-list-title">
+    <div class="catalog-head">
+      <h2 id="graph-list-title" tabindex="-1">完整关系列表</h2>
+      <p class="result-count">{len(nodes)} 个节点 · {len(edges)} 对去重关系</p>
+    </div>
+    <p class="sort-note">本列表由正式 YAML 直接生成；启用 JavaScript 后可切换图形视图。每个节点保留双端关系原文，不以布局推断新关系。</p>
+    {''.join(groups)}
+  </section>
+</main>
+<script src="assets/graph.js" defer></script>""",
+            page_footer(),
+        )
+    )
 
 
 def build_public_evidence(
@@ -1465,8 +1700,12 @@ def build_site(root: Path, output: Path) -> int:
     implementations = parse_implementations(root)
     reserve = parse_public_reserve(root)
     assets = root / "site" / "assets"
-    if not (assets / "style.css").is_file() or not (assets / "site.js").is_file():
-        raise ValueError("site/assets/ 缺少 style.css 或 site.js")
+    if (
+        not (assets / "style.css").is_file()
+        or not (assets / "site.js").is_file()
+        or not (assets / "graph.js").is_file()
+    ):
+        raise ValueError("site/assets/ 缺少 style.css、site.js 或 graph.js")
 
     if output.exists():
         shutil.rmtree(output)
@@ -1475,6 +1714,7 @@ def build_site(root: Path, output: Path) -> int:
     (output / "assets").mkdir()
 
     (output / "index.html").write_text(render_index(records, reviews), encoding="utf-8")
+    (output / "graph.html").write_text(render_graph(records), encoding="utf-8")
     (output / "acknowledgements.html").write_text(
         render_acknowledgements(acknowledgements), encoding="utf-8"
     )
@@ -1492,6 +1732,10 @@ def build_site(root: Path, output: Path) -> int:
     build_public_evidence(root, output, records)
     (output / "data" / "nodes.json").write_text(
         json.dumps(public_node_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (output / "data" / "graph.json").write_text(
+        json.dumps(public_graph_data(records), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     search_index = {
@@ -1512,6 +1756,7 @@ def build_site(root: Path, output: Path) -> int:
     )
     shutil.copy2(assets / "style.css", output / "assets" / "style.css")
     shutil.copy2(assets / "site.js", output / "assets" / "site.js")
+    shutil.copy2(assets / "graph.js", output / "assets" / "graph.js")
     (output / ".nojekyll").write_text("", encoding="utf-8")
     return len(records)
 

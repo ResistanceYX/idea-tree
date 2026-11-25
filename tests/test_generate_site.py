@@ -18,9 +18,11 @@ from scripts.generate_site import (
     parse_implementations,
     parse_prose,
     parse_public_reserve,
+    public_graph_data,
     reasoning_preview,
     render_acknowledgements,
     render_detail,
+    render_graph,
     render_implementations,
     render_index,
     render_prose,
@@ -82,6 +84,7 @@ class SiteGeneratorTests(unittest.TestCase):
         assets.mkdir(parents=True)
         (assets / "style.css").write_text("body { color: black; }\n", encoding="utf-8")
         (assets / "site.js").write_text("(() => {})();\n", encoding="utf-8")
+        (assets / "graph.js").write_text("(() => {})();\n", encoding="utf-8")
         (root / "README.md").write_text(
             """# 测试仓库
 
@@ -152,6 +155,27 @@ class SiteGeneratorTests(unittest.TestCase):
         file = root / "nodes" / f"{number}-{node_id}.yaml"
         file.write_text(node_text(node_id, title, number=number, **kwargs), encoding="utf-8")
         return file
+
+    def set_relation(
+        self,
+        source: Path,
+        target: Path,
+        relation: str,
+        note: str = "",
+    ) -> None:
+        data = yaml.safe_load(source.read_text(encoding="utf-8"))
+        relations = [
+            item
+            for item in data.get("相关节点", []) or []
+            if item.get("节点") != target.stem
+        ]
+        if relation:
+            relations.append({"节点": target.stem, "关系": relation, "说明": note})
+        data["相关节点"] = relations
+        source.write_text(
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
 
     def add_reserve(
         self,
@@ -278,9 +302,11 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertNotIn('>筛选档案 ↓</a>', content)
         self.assertIn('class="status-guide"', content)
         self.assertIn('当前完整路线按现有证据判为不可行或不再成立', content)
+        self.assertIn('class="acknowledgements-link graph-link" href="graph.html"', content)
         self.assertIn('href="acknowledgements.html"', content)
         self.assertIn('class="acknowledgements-link implementations-link" href="implementations.html"', content)
         self.assertIn('class="acknowledgements-link reserve-link" href="non-startup-tech.html"', content)
+        self.assertLess(content.index('href="graph.html"'), content.index('href="acknowledgements.html"'))
         self.assertLess(content.index('href="acknowledgements.html"'), content.index('href="implementations.html"'))
         self.assertLess(content.index('href="implementations.html"'), content.index('href="non-startup-tech.html"'))
         self.assertIn('href="nodes/alpha.html"', content)
@@ -365,6 +391,8 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('href="beta.html">#0002 · 乙节点</a>', content)
         self.assertNotIn('href="beta.html">beta</a>', content)
         self.assertIn('href="../index.html"', content)
+        self.assertIn('href="../graph.html#node-alpha"', content)
+        self.assertIn('在科技树中查看 →', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
         self.assertIn('记录类型：访谈记录', content)
         self.assertIn('原始附件不在静态站发布，公开页仅保留必要摘要。', content)
@@ -737,13 +765,16 @@ class SiteGeneratorTests(unittest.TestCase):
         output = self.build(root)
 
         self.assertTrue((output / "index.html").is_file())
+        self.assertTrue((output / "graph.html").is_file())
         self.assertTrue((output / "acknowledgements.html").is_file())
         self.assertTrue((output / "implementations.html").is_file())
         self.assertTrue((output / "non-startup-tech.html").is_file())
         self.assertTrue((output / "nodes" / "alpha.html").is_file())
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())
+        self.assertTrue((output / "assets" / "graph.js").is_file())
         self.assertTrue((output / "data" / "nodes.json").is_file())
+        self.assertTrue((output / "data" / "graph.json").is_file())
         self.assertTrue((output / "data" / "search-index.json").is_file())
         self.assertTrue((output / ".nojekyll").is_file())
         self.assertFalse((output / "evidence").exists())
@@ -1064,6 +1095,162 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('<a class="evidence-link" href="https://example.com/evidence"', detail)
         self.assertNotIn('class="expiry-status"', index, "提醒应由脚本按实际日期生成，而非静态写死")
         self.assertNotIn('class="expiry-status"', detail)
+
+    def test_graph_data_dedupes_direct_derivation_and_preserves_public_notes(self) -> None:
+        root = self.make_repo()
+        parent = self.add_node(root, "alpha", "甲节点")
+        child = self.add_node(root, "alpha_child", "甲节点子题")
+        self.set_relation(parent, child, "直接派生（测试收窄）", "母题侧公开说明")
+        self.set_relation(child, parent, "直接母题", "子题侧公开说明")
+        parent_data = yaml.safe_load(parent.read_text(encoding="utf-8"))
+        parent_data["需求证据"] = {"类型": "访谈记录", "附件": "evidence/PRIVATE.xlsx"}
+        parent.write_text(yaml.safe_dump(parent_data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+        graph = public_graph_data(load_nodes(root))
+
+        self.assertEqual(len(graph["nodes"]), 2)
+        self.assertEqual(len(graph["edges"]), 1)
+        edge = graph["edges"][0]
+        self.assertEqual(edge["id"], "0001-0002")
+        self.assertEqual(edge["source"], "alpha")
+        self.assertEqual(edge["target"], "alpha_child")
+        self.assertEqual(edge["kind"], "derivation")
+        self.assertTrue(edge["directed"])
+        self.assertEqual(len(edge["declarations"]), 2)
+        self.assertEqual(
+            {item["说明"] for item in edge["declarations"]},
+            {"母题侧公开说明", "子题侧公开说明"},
+        )
+        self.assertEqual([node["连接数"] for node in graph["nodes"]], [1, 1])
+        self.assertEqual([node["孤立"] for node in graph["nodes"]], [False, False])
+        self.assertEqual(
+            set(graph["nodes"][0]),
+            {"编号", "id", "标题", "领域", "档案类型", "复活状态", "页面", "连接数", "孤立"},
+        )
+        serialized = json.dumps(graph, ensure_ascii=False)
+        self.assertNotIn("PRIVATE", serialized)
+        self.assertNotIn("需求证据", serialized)
+
+    def test_graph_data_treats_general_labels_as_undirected_and_ignores_id_shape(self) -> None:
+        root = self.make_repo()
+        parent = self.add_node(root, "parent", "母题")
+        child = self.add_node(root, "parent_child", "相似id子题")
+        self.add_node(root, "parent_child_grandchild", "仅id相似的第三节点")
+        self.set_relation(parent, child, "可选下游观测记录整理衔接")
+        self.set_relation(child, parent, "可选上游观测记录供给")
+
+        graph = public_graph_data(load_nodes(root))
+
+        self.assertEqual(len(graph["edges"]), 1)
+        edge = graph["edges"][0]
+        self.assertEqual(edge["kind"], "relation")
+        self.assertFalse(edge["directed"])
+        self.assertEqual((edge["source"], edge["target"]), ("parent", "parent_child"))
+        third = next(node for node in graph["nodes"] if node["id"] == "parent_child_grandchild")
+        self.assertTrue(third["孤立"])
+        self.assertEqual(third["连接数"], 0)
+
+    def test_graph_data_rejects_incomplete_or_contradictory_direction(self) -> None:
+        root = self.make_repo()
+        parent = self.add_node(root, "alpha", "甲节点")
+        child = self.add_node(root, "beta", "乙节点")
+        self.set_relation(parent, child, "直接派生（测试）")
+        self.set_relation(child, parent, "一般相关")
+
+        with self.assertRaisesRegex(ValueError, "直接派生关系方向声明不完整或矛盾"):
+            public_graph_data(load_nodes(root))
+        with self.assertRaisesRegex(ValueError, "0001-alpha.*0002-beta"):
+            public_graph_data(load_nodes(root))
+
+        self.set_relation(child, parent, "直接母题")
+        graph = public_graph_data(load_nodes(root))
+        self.assertEqual(graph["edges"][0]["source"], "alpha")
+        self.set_relation(child, parent, "直接派生（反向声明）")
+        with self.assertRaisesRegex(ValueError, "方向声明不完整或矛盾"):
+            public_graph_data(load_nodes(root))
+
+    def test_graph_page_has_live_entries_and_complete_no_script_list(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        beta = self.add_node(root, "beta", "乙节点")
+        self.add_node(root, "gamma", "孤立节点")
+        self.set_relation(alpha, beta, "同源现象", "甲到乙")
+        self.set_relation(beta, alpha, "同源现象", "乙到甲")
+
+        content = render_graph(load_nodes(root))
+        output = self.build(root)
+        index = (output / "index.html").read_text(encoding="utf-8")
+        alpha_detail = (output / "nodes" / "alpha.html").read_text(encoding="utf-8")
+        gamma_detail = (output / "nodes" / "gamma.html").read_text(encoding="utf-8")
+
+        self.assertIn('<h1 class="archive-title" id="graph-title">科技树</h1>', content)
+        self.assertIn('href="graph.html" aria-current="page"', content)
+        self.assertIn('<strong>3</strong><span>正式节点</span>', content)
+        self.assertIn('<strong>1</strong><span>去重关系</span>', content)
+        self.assertIn('<strong>2</strong><span>接入节点</span>', content)
+        self.assertIn('<strong>1</strong><span>孤立节点</span>', content)
+        self.assertIn('id="graph-workspace" aria-label="交互式科技树" hidden', content)
+        self.assertIn('id="graph-view-controls" role="group" aria-label="科技树视图" hidden', content)
+        self.assertIn('id="node-alpha" tabindex="-1"', content)
+        self.assertIn('id="node-beta" tabindex="-1"', content)
+        self.assertIn('id="node-gamma" tabindex="-1"', content)
+        self.assertIn("甲到乙", content)
+        self.assertIn("乙到甲", content)
+        self.assertIn('src="assets/graph.js"', content)
+        self.assertIn('class="acknowledgements-link graph-link" href="graph.html"', index)
+        self.assertLess(index.index('href="graph.html"'), index.index('href="acknowledgements.html"'))
+        self.assertIn('href="../graph.html#node-alpha"', alpha_detail)
+        self.assertNotIn("在科技树中查看", gamma_detail)
+        nav = content.split('<nav class="topnav"', 1)[1].split("</nav>", 1)[0]
+        self.assertLess(nav.index("节点索引"), nav.index("科技树"))
+        self.assertLess(nav.index("科技树"), nav.index("GitHub仓库"))
+
+    def test_graph_build_tracks_relation_addition_modification_and_removal(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        beta = self.add_node(root, "beta", "乙节点")
+        output = self.build(root)
+
+        def graph_payload() -> dict:
+            return json.loads((output / "data" / "graph.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(graph_payload()["edges"], [])
+        self.assertTrue(all(node["孤立"] for node in graph_payload()["nodes"]))
+
+        self.set_relation(alpha, beta, "同类死因")
+        self.set_relation(beta, alpha, "同类死因")
+        build_site(root, output)
+        self.assertEqual(len(graph_payload()["edges"]), 1)
+        self.assertEqual(graph_payload()["edges"][0]["kind"], "relation")
+
+        self.set_relation(alpha, beta, "直接派生（测试修改）")
+        self.set_relation(beta, alpha, "直接母题")
+        build_site(root, output)
+        changed = graph_payload()["edges"][0]
+        self.assertEqual(changed["kind"], "derivation")
+        self.assertEqual((changed["source"], changed["target"]), ("alpha", "beta"))
+
+        self.set_relation(alpha, beta, "")
+        self.set_relation(beta, alpha, "")
+        build_site(root, output)
+        self.assertEqual(graph_payload()["edges"], [])
+        self.assertTrue(all(node["孤立"] for node in graph_payload()["nodes"]))
+        self.assertIn('<strong>0</strong><span>去重关系</span>', (output / "graph.html").read_text(encoding="utf-8"))
+
+    def test_graph_html_escapes_node_and_relation_text(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", '<script>alert("title")</script>')
+        beta = self.add_node(root, "beta", "乙节点")
+        self.set_relation(alpha, beta, "同源<script>", '<img src=x onerror="alert(1)">')
+        self.set_relation(beta, alpha, "同源<script>", "公开说明")
+
+        content = render_graph(load_nodes(root))
+
+        self.assertNotIn('<script>alert("title")</script>', content)
+        self.assertNotIn('<img src=x', content)
+        self.assertIn("&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;", content)
+        self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", content)
+        self.assertIn("同源&lt;script&gt;", content)
 
     def test_output_directory_cannot_erase_repository_or_parent(self) -> None:
         root = self.make_repo()

@@ -97,7 +97,7 @@ id: ai-federation-platform
   - 节点: 0013-cloud-research-automation-agent
     关系: 垂直领域参照
     说明: 科研云端Agent可作为多模型任务编排的垂直参照，但不构成母题的直接派生子题
-   - 节点: 0050-agent-legacy-code-failure-knowledge-base
+  - 节点: 0050-agent-legacy-code-failure-knowledge-base
     关系: 相邻协作模式与共同理论边界（非直接派生）
     说明: |
       0050让独立本地Agent经授权交流遗留代码故障经验并沉淀持久知识条目，本节点则是用户选择多个AI组成委员会，

@@ -9,7 +9,7 @@ import sys
 from collections import Counter, defaultdict
 from datetime import date, datetime
 from pathlib import Path, PurePosixPath
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
 
 import yaml
 
@@ -70,6 +70,132 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 EVIDENCE_PATH_RE = re.compile(r"evidence/[A-Za-z0-9._-]+")
 PURE_INTERNAL_EVIDENCE = {"创始人自我分析", "内部推演", "内部推理", "逻辑推理", "纯内部推演"}
 
+# These keys describe evidence-source identity, not proof that two pages are
+# semantically identical. Ambiguous redirects, mirrors and translations remain
+# editorial decisions; the validator only merges deterministic URL/work forms.
+TRACKING_QUERY_PARAMS = {
+    "fbclid",
+    "gclid",
+    "mc_cid",
+    "mc_eid",
+    "ref_src",
+    "spm_id_from",
+    "vd_source",
+}
+CLUSTER_SHARED_SOURCE_MIN = 4
+CLUSTER_SHARED_SOURCE_RATIO = 0.5
+CLUSTER_SOURCE_NODE_MIN = 4
+
+
+def evidence_source_key(url: str) -> str:
+    """Return a conservative, offline identity for an evidence source.
+
+    Different pages on one host are not merged. Conversely, platform-specific
+    work identifiers prevent route/version decoration from creating artificial
+    source diversity. Human review still decides independence of the content.
+    """
+    raw_url = url.strip()
+    parsed = urlparse(raw_url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme.lower() not in {"http", "https"} or not host:
+        return f"raw:{raw_url}"
+
+    try:
+        port = parsed.port
+    except ValueError:
+        return f"raw:{raw_url}"
+    if ":" in host:
+        host = f"[{host}]"
+    netloc = host
+    if port is not None and not (
+        (parsed.scheme.lower() == "http" and port == 80)
+        or (parsed.scheme.lower() == "https" and port == 443)
+    ):
+        netloc = f"{host}:{port}"
+
+    path = parsed.path or "/"
+    if path != "/":
+        path = path.rstrip("/") or "/"
+    parts = path.strip("/").split("/") if path.strip("/") else []
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+
+    # GitHub owner/repository names are case-insensitive; refs and file paths
+    # remain case-sensitive. Only identical ref + path forms are merged.
+    if host in {"github.com", "www.github.com"} and len(parts) >= 2:
+        owner, repository = parts[0].lower(), parts[1].lower()
+        rest = parts[2:]
+        if len(rest) >= 3 and rest[0] in {"blob", "raw"}:
+            return "github-file:" + "/".join((owner, repository, *rest[1:]))
+        normalized_path = "/".join((owner, repository, *rest))
+        query_items = [
+            (key, value)
+            for key, value in query_items
+            if key.lower() not in TRACKING_QUERY_PARAMS | {"plain", "raw", "tab"}
+            and not key.lower().startswith("utm_")
+        ]
+        query = urlencode(sorted(query_items), doseq=True)
+        return urlunparse(("https", "github.com", "/" + normalized_path, "", query, ""))
+    if host == "raw.githubusercontent.com" and len(parts) >= 4:
+        owner, repository = parts[0].lower(), parts[1].lower()
+        return "github-file:" + "/".join((owner, repository, *parts[2:]))
+
+    # arXiv abs/html/pdf routes and version suffixes are one research work for
+    # source-independence and reuse checks, even when their text differs.
+    if host in {"arxiv.org", "www.arxiv.org"} and len(parts) >= 2 and parts[0] in {"abs", "html", "pdf"}:
+        identifier = "/".join(parts[1:])
+        identifier = re.sub(r"\.pdf$", "", identifier, flags=re.IGNORECASE)
+        identifier = re.sub(r"v\d+$", "", identifier, flags=re.IGNORECASE)
+        return f"arxiv:{identifier.lower()}"
+
+    if host in {"doi.org", "dx.doi.org"} and parts:
+        return "doi:" + unquote("/".join(parts)).lower()
+
+    # Bilibili multi-part videos retain p as a content discriminator. Other
+    # tracking, sharing and playback-position parameters do not add a source.
+    video_id = None
+    if host in {"bilibili.com", "www.bilibili.com", "m.bilibili.com"} and len(parts) >= 2 and parts[0] == "video":
+        video_id = parts[1]
+    elif host == "b23.tv" and len(parts) == 1:
+        video_id = parts[0]
+    video_match = re.fullmatch(r"(?i:(bv[a-z0-9]+|av\d+))", video_id) if video_id else None
+    if video_match:
+        identifier = video_match.group(1)
+        kind = "bv" if identifier.lower().startswith("bv") else "av"
+        if kind == "bv":
+            identifier = "BV" + identifier[2:]
+        else:
+            identifier = identifier.lower()
+        part_values = [value for key, value in query_items if key == "p"]
+        if part_values and not re.fullmatch(r"[1-9]\d*", part_values[0]):
+            return f"raw:{raw_url}"
+        part = part_values[0] if part_values else "1"
+        return f"bilibili:{kind}:{identifier}:p{part}"
+
+    youtube_id = None
+    if host in {"youtu.be", "www.youtu.be"} and parts:
+        youtube_id = parts[0]
+    elif host in {
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "youtube-nocookie.com",
+        "www.youtube-nocookie.com",
+    }:
+        if parts == ["watch"]:
+            youtube_id = next((value for key, value in query_items if key == "v"), None)
+        elif len(parts) >= 2 and parts[0] in {"embed", "live", "shorts"}:
+            youtube_id = parts[1]
+    if youtube_id:
+        return f"youtube:{youtube_id}"
+
+    query_items = [
+        (key, value)
+        for key, value in query_items
+        if key.lower() not in TRACKING_QUERY_PARAMS and not key.lower().startswith("utm_")
+    ]
+    query = urlencode(sorted(query_items), doseq=True)
+    return urlunparse(("https", netloc, path, "", query, ""))
+
 
 def nonempty_string(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
@@ -109,6 +235,8 @@ def validate_repository(root: Path) -> dict[str, object]:
     warnings: list[str] = []
     nodes: dict[Path, dict] = {}
     all_links: dict[str, list[str]] = defaultdict(list)
+    all_sources: dict[str, list[str]] = defaultdict(list)
+    node_source_keys: dict[Path, set[str]] = defaultdict(set)
 
     def error(location: str, message: str) -> None:
         errors.append(f"{location}: {message}")
@@ -263,30 +391,33 @@ def validate_repository(root: Path) -> dict[str, object]:
                 error(death_location, "单条死法的证据链接不得超过16个")
             if len(links) > 8 and not nonempty_string(death.get("备注")):
                 error(death_location, "单条死法超过8个证据链接时必须备注原因")
-            if len(links) != len(set(links)):
-                warning(death_location, "单条死法内存在重复链接")
+            source_keys = [evidence_source_key(url) for url in links]
+            if len(source_keys) != len(set(source_keys)):
+                warning(death_location, "单条死法内存在重复或同源变体链接，已按同一来源计数")
             if death.get("置信度") == "高":
-                if len(set(links)) < 2:
-                    error(death_location, "高置信度至少需要两个不同证据链接")
+                if len(set(source_keys)) < 2:
+                    error(death_location, "高置信度至少需要两个不同证据来源（同源变体只计一个）")
                 if evidence in PURE_INTERNAL_EVIDENCE:
                     error(death_location, "纯内部推演不得标为高置信度")
             if not links and ("公开" in evidence or "过往案例" in evidence):
                 error(death_location, "声明公开案例或公开证据时必须挂证据链接")
 
-            for url in links:
+            for url, source_key in zip(links, source_keys):
                 parsed = urlparse(url)
                 if parsed.scheme not in {"http", "https"} or not parsed.netloc:
                     error(death_location, f"证据链接格式异常：`{url}`")
                 lowered = (parsed.path + "?" + parsed.query).lower()
                 if lowered.endswith(".pdf") or "/download/" in lowered or "download=" in lowered:
                     error(death_location, f"不得使用 PDF 直链或下载接口作为证据链接：`{url}`")
-                node_links.append(url)
+                node_links.append(source_key)
+                node_source_keys[file].add(source_key)
                 all_links[url].append(f"{location}#{index}")
+                all_sources[source_key].append(f"{location}#{index}")
 
         reuse_limit = len(deaths) - 2
-        for url, count in Counter(node_links).items():
+        for source_key, count in Counter(node_links).items():
             if count > reuse_limit:
-                error(location, f"链接 `{url}` 复用 {count} 次，超过 n-2={reuse_limit}")
+                error(location, f"同源证据 `{source_key}` 复用 {count} 次，超过 n-2={reuse_limit}")
 
         raw_text = file.read_text(encoding="utf-8")
         for reference in sorted(set(EVIDENCE_PATH_RE.findall(raw_text))):
@@ -381,6 +512,121 @@ def validate_repository(root: Path) -> dict[str, object]:
         elif direct_parent_refs:
             error(location, "声明直接母题的节点必须使用母题前缀和下划线子题短名")
 
+    # Explicitly related nodes are review clusters, not a global reuse quota.
+    # Concentration warnings never decide whether shared baseline evidence is
+    # justified, and never authorize automatic link replacement.
+    related_pairs: set[tuple[Path, Path]] = set()
+    for file, data in nodes.items():
+        relations = data.get("相关节点", []) or []
+        if not isinstance(relations, list):
+            continue
+        for relation in relations:
+            if not isinstance(relation, dict) or not isinstance(relation.get("节点"), str):
+                continue
+            target_file = ref_to_file.get(relation.get("节点"))
+            if target_file is None or target_file == file:
+                continue
+            related_pairs.add(tuple(sorted((file, target_file), key=lambda path: path.name)))
+
+    for left, right in sorted(related_pairs, key=lambda pair: (pair[0].name, pair[1].name)):
+        left_sources = node_source_keys[left]
+        right_sources = node_source_keys[right]
+        shared = left_sources & right_sources
+        smaller_count = min(len(left_sources), len(right_sources))
+        if not smaller_count:
+            continue
+        share = len(shared) / smaller_count
+        if len(shared) >= CLUSTER_SHARED_SOURCE_MIN and share >= CLUSTER_SHARED_SOURCE_RATIO:
+            warning(
+                f"nodes/{left.name} ↔ nodes/{right.name}",
+                f"相关节点共享 {len(shared)} 个同源来源，占较小节点来源数的 {share:.0%}；"
+                "请人工核对共同基线是否必要，以及各节点新增机制是否有直接、独立证据；不得仅为消除警告替换链接",
+            )
+
+    # Pairwise overlap can miss one source repeated along a whole relation
+    # chain. Inspect each source's induced related-node component separately.
+    source_owners: dict[str, set[Path]] = defaultdict(set)
+    for file, sources in node_source_keys.items():
+        for source_key in sources:
+            source_owners[source_key].add(file)
+    for source_key in sorted(source_owners):
+        owners = source_owners[source_key]
+        if len(owners) < CLUSTER_SOURCE_NODE_MIN:
+            continue
+        adjacency: dict[Path, set[Path]] = {file: set() for file in owners}
+        for left, right in related_pairs:
+            if left in owners and right in owners:
+                adjacency[left].add(right)
+                adjacency[right].add(left)
+        unseen = set(owners)
+        components: list[set[Path]] = []
+        while unseen:
+            root_file = min(unseen, key=lambda path: path.name)
+            unseen.remove(root_file)
+            component = {root_file}
+            pending = [root_file]
+            while pending:
+                current = pending.pop()
+                for neighbor in sorted(adjacency[current], key=lambda path: path.name):
+                    if neighbor in unseen:
+                        unseen.remove(neighbor)
+                        component.add(neighbor)
+                        pending.append(neighbor)
+            components.append(component)
+        for component in sorted(components, key=lambda group: min(path.name for path in group)):
+            if len(component) >= CLUSTER_SOURCE_NODE_MIN:
+                numbers = "、".join(file.name[:4] for file in sorted(component, key=lambda path: path.name))
+                warning(
+                    f"nodes/相关节点链（{numbers}）",
+                    f"同源证据 `{source_key}` 沿显式相关节点链覆盖 {len(component)} 个节点；"
+                    "请逐节点核对复用是否直接、必要，以及特有机制是否另有独立证据；不得仅为消除警告替换链接",
+                )
+
+    # A derived node may inherit a baseline, but reusing only its ancestors'
+    # sources cannot establish the newly added mechanism. This is a warning so
+    # the editor can document a genuine evidence gap instead of padding links.
+    for file, data in sorted(nodes.items(), key=lambda item: item[0].name):
+        relations = data.get("相关节点", []) or []
+        if not isinstance(relations, list):
+            continue
+        parents = [
+            ref_to_file[relation["节点"]]
+            for relation in relations
+            if isinstance(relation, dict)
+            and relation.get("关系") == "直接母题"
+            and isinstance(relation.get("节点"), str)
+            and relation.get("节点") in ref_to_file
+        ]
+        if len(parents) != 1:
+            continue
+        ancestors: set[Path] = set()
+        pending = parents[:]
+        while pending:
+            ancestor = pending.pop()
+            if ancestor in ancestors:
+                continue
+            ancestors.add(ancestor)
+            ancestor_relations = nodes[ancestor].get("相关节点", []) or []
+            if not isinstance(ancestor_relations, list):
+                continue
+            pending.extend(
+                ref_to_file[relation["节点"]]
+                for relation in ancestor_relations
+                if isinstance(relation, dict)
+                and relation.get("关系") == "直接母题"
+                and isinstance(relation.get("节点"), str)
+                and relation.get("节点") in ref_to_file
+                and ref_to_file[relation["节点"]] not in ancestors
+            )
+        inherited_sources = set().union(*(node_source_keys[ancestor] for ancestor in ancestors))
+        own_sources = node_source_keys[file]
+        if own_sources and inherited_sources and not own_sources - inherited_sources:
+            warning(
+                f"nodes/{file.name}",
+                "直接派生子题没有超出全部祖先链的新增同源来源；请补充直接针对本层新增机制的独立证据，"
+                "或由主编确认并记录证据缺口，不得用同源变体或弱相关链接凑数",
+            )
+
     readme = root / "README.md"
     if not readme.is_file():
         error("README.md", "文件不存在")
@@ -403,6 +649,7 @@ def validate_repository(root: Path) -> dict[str, object]:
         "nodes": len(nodes),
         "deaths": sum(len(data.get("死法", [])) for data in nodes.values()),
         "unique_links": len(all_links),
+        "unique_sources": len(all_sources),
         "link_occurrences": sum(len(locations) for locations in all_links.values()),
     }
 
@@ -421,7 +668,8 @@ def main() -> int:
         "检查汇总："
         f"节点 {result['nodes']} 个，"
         f"死法 {result['deaths']} 条，"
-        f"不同证据链接 {result['unique_links']} 个，"
+        f"不同原始链接 {result['unique_links']} 个，"
+        f"归并后来源 {result['unique_sources']} 个，"
         f"链接出现 {result['link_occurrences']} 次，"
         f"错误 {len(result['errors'])} 个，"
         f"警告 {len(result['warnings'])} 个。"

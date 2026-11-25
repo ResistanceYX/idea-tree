@@ -2,7 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.validate import validate_repository
+import yaml
+
+from scripts.validate import evidence_source_key, validate_repository
 
 
 def node_text(node_id: str, title: str = "测试节点", number: str = "0001") -> str:
@@ -29,6 +31,25 @@ id: {node_id}
 """
 
 
+def public_death(links: list[str], confidence: str = "中") -> dict:
+    return {
+        "类型": "伪需求",
+        "证据": "公开案例",
+        "推理": "用于测试来源归并与复用检查的公开证据条目",
+        "证据链接": links,
+        "置信度": confidence,
+    }
+
+
+def internal_death() -> dict:
+    return {
+        "类型": "执行人限制",
+        "证据": "内部推演",
+        "推理": "用于组成足够死法数量的明确内部推演",
+        "置信度": "中",
+    }
+
+
 class ValidatorTests(unittest.TestCase):
     def make_repo(self) -> Path:
         temp = tempfile.TemporaryDirectory()
@@ -38,6 +59,22 @@ class ValidatorTests(unittest.TestCase):
         (root / "evidence").mkdir()
         (root / "README.md").write_text("# 测试仓库\n", encoding="utf-8")
         return root
+
+    def write_node(
+        self,
+        root: Path,
+        stem: str,
+        deaths: list[dict],
+        relations: list[dict] | None = None,
+    ) -> Path:
+        number, node_id = stem.split("-", 1)
+        data = yaml.safe_load(node_text(node_id, number=number))
+        data["死法"] = deaths
+        if relations is not None:
+            data["相关节点"] = relations
+        file = root / "nodes" / f"{stem}.yaml"
+        file.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return file
 
     def test_valid_minimal_node_passes(self) -> None:
         root = self.make_repo()
@@ -82,7 +119,7 @@ id: broken-node
         self.assertIn("档案类型", messages)
         self.assertIn("商业及社会价值评估", messages)
         self.assertIn("id 与文件名不一致", messages)
-        self.assertIn("高置信度至少需要两个不同证据链接", messages)
+        self.assertIn("高置信度至少需要两个不同证据来源", messages)
 
     def test_optional_conclusion_boundary_must_be_a_nonempty_string(self) -> None:
         root = self.make_repo()
@@ -235,6 +272,193 @@ id: broken-node
         )
         old_reference = validate_repository(root)
         self.assertIn("未使用带编号文件名主体", "\n".join(old_reference["errors"]))
+
+
+    def test_evidence_source_keys_merge_only_deterministic_variants(self) -> None:
+        equivalent_groups = [
+            [
+                "HTTP://Example.COM:80/evidence/?utm_source=newsletter#section",
+                "https://example.com/evidence",
+            ],
+            [
+                "https://github.com/OpenAI/Repo/blob/main/docs/A.md?plain=1#L1",
+                "https://raw.githubusercontent.com/openai/repo/main/docs/A.md",
+            ],
+            [
+                "https://arxiv.org/abs/2408.14007v1",
+                "https://www.arxiv.org/html/2408.14007v3",
+            ],
+            [
+                "http://dx.doi.org/10.1000/ABC",
+                "https://doi.org/10.1000/abc/",
+            ],
+            [
+                "https://www.bilibili.com/video/BV1HSWx6MEbG/?spm_id_from=333.788&vd_source=abc",
+                "https://b23.tv/BV1HSWx6MEbG",
+            ],
+            [
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1s",
+                "https://youtu.be/dQw4w9WgXcQ",
+            ],
+        ]
+        for group in equivalent_groups:
+            with self.subTest(group=group):
+                self.assertEqual(1, len({evidence_source_key(url) for url in group}))
+
+        distinct_pairs = [
+            ("https://example.com/evidence-a", "https://example.com/evidence-b"),
+            (
+                "https://github.com/openai/repo/blob/main/docs/A.md",
+                "https://github.com/openai/repo/blob/main/docs/B.md",
+            ),
+            ("https://arxiv.org/abs/2408.14007v1", "https://arxiv.org/abs/2408.14008v1"),
+            (
+                "https://www.bilibili.com/video/BV1HSWx6MEbG/?p=1",
+                "https://www.bilibili.com/video/BV1HSWx6MEbG/?p=2",
+            ),
+            ("https://b23.tv/unresolved-token", "https://www.bilibili.com/video/BV1HSWx6MEbG/"),
+        ]
+        for left, right in distinct_pairs:
+            with self.subTest(left=left, right=right):
+                self.assertNotEqual(evidence_source_key(left), evidence_source_key(right))
+
+    def test_high_confidence_cannot_count_same_work_variants_twice(self) -> None:
+        root = self.make_repo()
+        variants = [
+            "https://arxiv.org/abs/2408.14007v1",
+            "https://arxiv.org/html/2408.14007v3",
+        ]
+        file = self.write_node(
+            root,
+            "0001-test-node",
+            [public_death(variants, "高"), internal_death(), internal_death(), internal_death()],
+        )
+
+        result = validate_repository(root)
+
+        self.assertIn("高置信度至少需要两个不同证据来源", "\n".join(result["errors"]))
+        self.assertIn("同源变体链接", "\n".join(result["warnings"]))
+        self.assertNotIn("超过 n-2", "\n".join(result["errors"]))
+        self.assertEqual(2, result["unique_links"])
+        self.assertEqual(1, result["unique_sources"])
+
+        data = yaml.safe_load(file.read_text(encoding="utf-8"))
+        data["死法"][0]["证据链接"][1] = "https://example.org/independent-evidence"
+        file.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        independent = validate_repository(root)
+        self.assertEqual([], independent["errors"])
+        self.assertEqual([], independent["warnings"])
+        self.assertEqual(2, independent["unique_sources"])
+
+    def test_n_minus_two_counts_same_source_across_url_variants(self) -> None:
+        root = self.make_repo()
+        variants = [
+            "https://github.com/OpenAI/Repo/blob/main/docs/A.md",
+            "https://raw.githubusercontent.com/openai/repo/main/docs/A.md",
+            "https://github.com/openai/repo/raw/main/docs/A.md#evidence",
+        ]
+        self.write_node(
+            root,
+            "0001-test-node",
+            [*(public_death([url]) for url in variants), internal_death()],
+        )
+
+        result = validate_repository(root)
+
+        self.assertIn("同源证据 `github-file:openai/repo/main/docs/A.md` 复用 3 次，超过 n-2=2", "\n".join(result["errors"]))
+        self.assertEqual(3, result["unique_links"])
+        self.assertEqual(1, result["unique_sources"])
+
+    def test_related_cluster_concentration_warns_without_global_quota(self) -> None:
+        root = self.make_repo()
+        links = [f"https://example.com/source-{index}" for index in range(4)]
+        deaths = [public_death([url]) for url in links]
+        self.write_node(
+            root,
+            "0001-alpha",
+            deaths,
+            [{"节点": "0002-beta", "关系": "测试关联"}],
+        )
+        self.write_node(
+            root,
+            "0002-beta",
+            deaths,
+            [{"节点": "0001-alpha", "关系": "测试关联"}],
+        )
+
+        related = validate_repository(root)
+
+        self.assertEqual([], related["errors"])
+        self.assertIn("相关节点共享 4 个同源来源", "\n".join(related["warnings"]))
+        self.assertIn("不得仅为消除警告替换链接", "\n".join(related["warnings"]))
+
+        for stem in ("0001-alpha", "0002-beta"):
+            file = root / "nodes" / f"{stem}.yaml"
+            data = yaml.safe_load(file.read_text(encoding="utf-8"))
+            del data["相关节点"]
+            file.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        unrelated = validate_repository(root)
+        self.assertEqual([], unrelated["errors"])
+        self.assertEqual([], unrelated["warnings"])
+
+    def test_one_source_repeated_along_four_node_relation_chain_warns(self) -> None:
+        root = self.make_repo()
+        shared = "https://example.com/shared-baseline"
+        stems = ["0001-alpha", "0002-beta", "0003-gamma", "0004-delta"]
+        for index, stem in enumerate(stems):
+            relations = []
+            if index:
+                relations.append({"节点": stems[index - 1], "关系": "测试关联"})
+            if index + 1 < len(stems):
+                relations.append({"节点": stems[index + 1], "关系": "测试关联"})
+            self.write_node(
+                root,
+                stem,
+                [
+                    public_death([shared, f"https://example.org/unique-{index}"]),
+                    internal_death(),
+                    internal_death(),
+                ],
+                relations,
+            )
+
+        result = validate_repository(root)
+
+        self.assertEqual([], result["errors"])
+        self.assertIn("沿显式相关节点链覆盖 4 个节点", "\n".join(result["warnings"]))
+        self.assertIn(shared, "\n".join(result["warnings"]))
+        self.assertNotIn("相关节点共享 4 个同源来源", "\n".join(result["warnings"]))
+
+    def test_derived_child_needs_a_source_new_to_its_ancestor_chain(self) -> None:
+        root = self.make_repo()
+        self.write_node(
+            root,
+            "0001-parent",
+            [public_death(["https://arxiv.org/abs/2408.14007v1"]), internal_death(), internal_death()],
+            [{"节点": "0002-parent_child", "关系": "直接派生"}],
+        )
+        child = self.write_node(
+            root,
+            "0002-parent_child",
+            [public_death(["https://arxiv.org/html/2408.14007v3"]), internal_death(), internal_death()],
+            [{"节点": "0001-parent", "关系": "直接母题"}],
+        )
+
+        inherited_only = validate_repository(root)
+
+        self.assertEqual([], inherited_only["errors"])
+        self.assertIn("直接派生子题没有超出全部祖先链的新增同源来源", "\n".join(inherited_only["warnings"]))
+
+        data = yaml.safe_load(child.read_text(encoding="utf-8"))
+        data["死法"] = [
+            data["死法"][0],
+            public_death(["https://example.org/child-mechanism"]),
+            internal_death(),
+        ]
+        child.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        with_new_source = validate_repository(root)
+        self.assertEqual([], with_new_source["errors"])
+        self.assertNotIn("新增同源来源", "\n".join(with_new_source["warnings"]))
 
 
 if __name__ == "__main__":

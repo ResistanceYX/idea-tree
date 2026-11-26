@@ -302,6 +302,7 @@ def page_head(title: str, description: str, prefix: str = "") -> str:
 
 def page_header(prefix: str = "", detail: bool = False, current: str = "") -> str:
     index_label = "返回节点索引" if detail else "节点索引"
+    index_current = ' aria-current="page"' if current == "index" else ""
     graph_current = ' aria-current="page"' if current == "graph" else ""
     return f"""<header class="topbar">
   <div class="topbar-inner">
@@ -311,7 +312,7 @@ def page_header(prefix: str = "", detail: bool = False, current: str = "") -> st
       <span class="brand-slogan">每个点子，只死一次。</span>
     </div>
     <nav class="topnav" aria-label="主导航">
-      <a href="{prefix}index.html">{index_label}</a>
+      <a href="{prefix}index.html"{index_current}>{index_label}</a>
       <a href="{prefix}graph.html"{graph_current}>科技树</a>
       <a href="{REPOSITORY_URL}" target="_blank" rel="noopener noreferrer">GitHub仓库 ↗</a>
     </nav>
@@ -1061,7 +1062,7 @@ def render_index(
             if parts else ""
         )
         rows.append(
-            f"""<article class="record" data-node-id="{escape(node_id)}" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
+            f"""<article class="record" data-node-id="{escape(node_id)}" data-number="{escape(node_number)}" data-expiry="{escape(expiry)}" data-search="{escape(search)}" data-domain="{escape(domain)}" data-deaths="{escape('|'.join(types))}" data-status="{escape(status)}" data-archive="{escape(archive)}">
   <div class="record-main">
     <div class="record-title">
       <a href="nodes/{escape(node_id)}.html">{escape(title)}</a>
@@ -1091,7 +1092,7 @@ def render_index(
     return "\n".join(
         (
             page_head("创业点子的死法档案", "检索创业点子的预审、验尸、死因证据与可拆零件。"),
-            page_header(),
+            page_header(current="index"),
             f"""<main id="main-content" class="shell index-layout">
   <aside class="intro" aria-label="项目介绍与筛选">
     <div class="intro-overview">
@@ -1159,7 +1160,16 @@ def render_index(
       <h2 id="catalog-title" tabindex="-1">节点索引</h2>
       <p class="result-count" id="result-count" aria-live="polite">显示 {len(records)} / {len(records)} 个节点</p>
     </div>
-    <p class="sort-note">默认按死因保质期升序排列；同日期按永久编号升序排列。搜索和筛选不改变顺序。</p>
+    <div class="field sort-control" id="sort-control" hidden>
+      <label for="record-sort">节点排序</label>
+      <select id="record-sort">
+        <option value="expiry-asc" selected>死因保质期：正序（较早 → 较晚）</option>
+        <option value="expiry-desc">死因保质期：倒序（较晚 → 较早）</option>
+        <option value="number-asc">节点编号：正序（较小编号 → 较大）</option>
+        <option value="number-desc">节点编号：倒序（较大编号 → 较小）</option>
+      </select>
+    </div>
+    <p class="sort-note">默认按死因保质期正序排列；同日期按永久编号正序排列。启用 JavaScript 后可切换排序；搜索和筛选只隐藏节点，不改变所选顺序。</p>
     {render_status_guide()}
     <div class="record-labels" aria-hidden="true"><span>节点／编号／id</span><span>领域</span><span>死法</span><span>类型／状态</span><span>死因保质期</span></div>
     {''.join(rows)}
@@ -1539,7 +1549,7 @@ def render_graph(records: list[tuple[Path, dict]]) -> str:
             if relation_items
             else '<p class="graph-no-relations">暂无显式关系；节点仍保留在完整档案中。</p>'
         )
-        return f"""<article class="graph-list-entry" id="node-{escape(node_id)}" tabindex="-1">
+        return f"""<article class="graph-list-entry" id="node-{escape(node_id)}" data-node-id="{escape(node_id)}" tabindex="-1">
   <div class="graph-entry-heading">
     <div>
       <p class="record-id">#{escape(node['编号'])} · {escape(node_id)}</p>
@@ -1594,46 +1604,52 @@ def render_graph(records: list[tuple[Path, dict]]) -> str:
     </div>
     <p class="graph-status" id="graph-status" role="status" aria-live="polite" hidden></p>
   </section>
-  <section class="graph-workspace" id="graph-workspace" aria-label="交互式科技树" hidden>
-    <div class="graph-map-panel">
-      <div class="graph-toolbar" aria-label="关系图筛选">
-        <div class="field graph-search-field">
-          <label for="graph-search">搜索标题、编号或id</label>
-          <input id="graph-search" type="search" placeholder="例如：0044、代码注释、Agent" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="graph-kind">关系类型</label>
-          <select id="graph-kind">
-            <option value="all">全部关系</option>
-            <option value="derivation">仅直接派生</option>
-            <option value="relation">仅一般相关</option>
-          </select>
-        </div>
-        <label class="check-option graph-isolated-option"><input id="graph-show-isolated" type="checkbox"><span>显示无连接节点</span></label>
-        <button class="reset-button" id="graph-reset" type="button">复位视图</button>
-      </div>
-      <div class="graph-legend" aria-label="图例">
-        <span><i class="legend-line derivation" aria-hidden="true"></i>直接派生 · 有方向</span>
-        <span><i class="legend-line relation" aria-hidden="true"></i>一般相关 · 无方向</span>
-        <span>选择节点可聚焦相邻关系</span>
-      </div>
-      <div class="graph-canvas" id="graph-canvas"></div>
+  <p class="notice graph-loading" id="graph-loading" role="status" hidden>正在加载交互式科技树；完整静态关系列表仍保留在页面中。</p>
+  <div class="graph-browser" id="graph-browser">
+    <div class="field graph-search-field" id="graph-search-field" hidden>
+      <label for="graph-search">搜索标题、编号或id（同时筛选图形和完整列表）</label>
+      <input id="graph-search" type="search" placeholder="例如：0044、代码注释、Agent" autocomplete="off">
     </div>
-    <aside class="graph-inspector" id="graph-inspector" aria-label="选中节点档案">
-      <p class="kicker">Node inspector</p>
-      <h2>选择一个节点</h2>
-      <p>在图中选择节点，查看完整名称、状态与双端关系说明。也可使用键盘 Tab 移动焦点，Enter 或空格选择。</p>
-    </aside>
-  </section>
-  <noscript><p class="notice">当前未启用 JavaScript。以下是由正式 YAML 直接生成的完整静态关系列表，所有档案链接仍可使用。</p></noscript>
-  <section class="graph-list-section" id="graph-list" aria-labelledby="graph-list-title">
-    <div class="catalog-head">
-      <h2 id="graph-list-title" tabindex="-1">完整关系列表</h2>
-      <p class="result-count">{len(nodes)} 个节点 · {len(edges)} 对去重关系</p>
-    </div>
-    <p class="sort-note">本列表由正式 YAML 直接生成；启用 JavaScript 后可切换图形视图。每个节点保留双端关系原文，不以布局推断新关系。</p>
-    {''.join(groups)}
-  </section>
+    <section class="graph-workspace" id="graph-workspace" aria-label="交互式科技树" hidden>
+      <div class="graph-map-panel">
+        <h2 class="graph-map-title" id="graph-map-title" tabindex="-1">关系图</h2>
+        <div class="graph-toolbar" aria-label="关系图筛选">
+          <div class="field">
+            <label for="graph-kind">关系类型</label>
+            <select id="graph-kind">
+              <option value="all">全部关系</option>
+              <option value="derivation">仅直接派生</option>
+              <option value="relation">仅一般相关</option>
+            </select>
+          </div>
+          <label class="check-option graph-isolated-option"><input id="graph-show-isolated" type="checkbox" checked><span>显示当前视图无连接节点</span></label>
+          <button class="reset-button" id="graph-reset" type="button">复位视图</button>
+        </div>
+        <div class="graph-legend" aria-label="图例">
+          <span><i class="legend-line derivation" aria-hidden="true"></i>直接派生 · 有方向</span>
+          <span><i class="legend-line relation" aria-hidden="true"></i>一般相关 · 无方向</span>
+          <span>选择节点可聚焦相邻关系</span>
+        </div>
+        <p class="graph-pan-hint" id="graph-pan-hint">图形较宽：在图内左右滑动查看。选择节点后会显示详情，可再返回原节点。</p>
+        <div class="graph-canvas" id="graph-canvas" role="region" aria-label="可横向滚动的科技图画布" aria-describedby="graph-pan-hint" tabindex="0"></div>
+      </div>
+      <aside class="graph-inspector" id="graph-inspector" aria-label="选中节点档案">
+        <p class="kicker">Node inspector</p>
+        <h2 id="graph-inspector-title" tabindex="-1">选择一个节点</h2>
+        <p>在图中选择节点，查看完整名称、状态与双端关系说明。也可使用键盘 Tab 移动焦点，Enter 或空格选择。</p>
+      </aside>
+    </section>
+    <noscript><p class="notice">当前未启用 JavaScript。以下是由正式 YAML 直接生成的完整静态关系列表，所有档案链接仍可使用。</p></noscript>
+    <section class="graph-list-section" id="graph-list" aria-labelledby="graph-list-title">
+      <div class="catalog-head">
+        <h2 id="graph-list-title" tabindex="-1">完整关系列表</h2>
+        <p class="result-count" id="graph-list-count">{len(nodes)} 个节点 · {len(edges)} 对去重关系</p>
+      </div>
+      <p class="sort-note">本列表由正式 YAML 直接生成；启用 JavaScript 后可切换图形视图并搜索标题、编号或id。关系类型与无连接节点开关只影响图形，不删改列表中的关系原文。</p>
+      <p class="empty-state" id="graph-list-empty" hidden>没有匹配的节点。请清空搜索词后重试。</p>
+      {''.join(groups)}
+    </section>
+  </div>
 </main>
 <script src="assets/graph.js" defer></script>""",
             page_footer(),

@@ -2,15 +2,18 @@ import json
 import re
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import yaml
 
 from scripts.generate_site import (
     NUMBERED_MARKER,
     PUBLIC_RESERVE_REGISTRY,
+    PUBLIC_SITE_URL,
+    REPOSITORY_URL,
     build_site,
     join_soft,
     load_nodes,
@@ -41,6 +44,35 @@ class LocalLinkParser(HTMLParser):
             if name in {"href", "src"} and value:
                 self.links.append(value)
 
+
+class HeadMetadataParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.canonicals: list[str] = []
+        self.describedby: list[str] = []
+        self.og: dict[str, list[str]] = {}
+        self.json_ld: list[str] = []
+        self._json_ld_open = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "link" and attributes.get("rel") == "canonical":
+            self.canonicals.append(attributes.get("href") or "")
+        if tag == "link" and attributes.get("rel") == "describedby":
+            self.describedby.append(attributes.get("href") or "")
+        if tag == "meta" and (attributes.get("property") or "").startswith("og:"):
+            self.og.setdefault(attributes["property"], []).append(attributes.get("content") or "")
+        if tag == "script" and attributes.get("type") == "application/ld+json":
+            self._json_ld_open = True
+            self.json_ld.append("")
+
+    def handle_data(self, data: str) -> None:
+        if self._json_ld_open:
+            self.json_ld[-1] += data
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "script" and self._json_ld_open:
+            self._json_ld_open = False
 
 def node_text(
     node_id: str,
@@ -88,12 +120,15 @@ class SiteGeneratorTests(unittest.TestCase):
         (root / "README.md").write_text(
             """# 测试仓库
 
+## 死法分类法 v1.2
+
 ## 特别鸣谢
 
 完整记录见 [ACKNOWLEDGEMENTS/README.md](ACKNOWLEDGEMENTS/README.md)。
 """,
             encoding="utf-8",
         )
+        (root / "REVIEW.md").write_text("# 测试复核清单\n", encoding="utf-8")
         acknowledgements = root / "ACKNOWLEDGEMENTS"
         acknowledgements.mkdir()
         (acknowledgements / "README.md").write_text(
@@ -1296,6 +1331,215 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt;", content)
         self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", content)
         self.assertIn("同源&lt;script&gt;", content)
+
+    def test_head_metadata_covers_every_public_html_page(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_node(root, "beta", "乙节点")
+        output = self.build(root)
+
+        pages = sorted(output.rglob("*.html"))
+        self.assertGreater(len(pages), 2)
+        for page in pages:
+            with self.subTest(page=page.relative_to(output).as_posix()):
+                path = page.relative_to(output).as_posix()
+                raw = page.read_text(encoding="utf-8")
+                parser = HeadMetadataParser()
+                parser.feed(raw)
+                expected_url = PUBLIC_SITE_URL + ("/" if path == "index.html" else f"/{path}")
+
+                self.assertEqual(parser.canonicals, [expected_url])
+                self.assertEqual(parser.describedby, [f"{PUBLIC_SITE_URL}/llms.txt"])
+                self.assertEqual(
+                    set(parser.og),
+                    {"og:title", "og:description", "og:url", "og:type"},
+                )
+                for values in parser.og.values():
+                    self.assertEqual(len(values), 1)
+                self.assertEqual(parser.og["og:url"], [expected_url])
+                canonical = urlsplit(parser.canonicals[0])
+                self.assertEqual((canonical.scheme, canonical.netloc), ("https", "resistanceyx.github.io"))
+                self.assertFalse(canonical.query)
+                self.assertFalse(canonical.fragment)
+                self.assertNotIn("og:image", parser.og, "本期不得伪造社交预览图占位")
+
+                if path.startswith("nodes/"):
+                    node_id = Path(path).stem
+                    source = next(root.glob(f"nodes/*-{node_id}.yaml"))
+                    data = yaml.safe_load(source.read_text(encoding="utf-8"))
+                    self.assertEqual(parser.og["og:type"], ["article"])
+                    self.assertEqual(len(parser.json_ld), 1)
+                    article = json.loads(parser.json_ld[0])
+                    self.assertEqual(
+                        article,
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "Article",
+                            "headline": data["标题"],
+                            "description": data["一句话"],
+                            "dateModified": str(data["审核日期"]),
+                            "author": {"@type": "Person", "name": data["审核人"]},
+                        },
+                    )
+                    self.assertNotIn("datePublished", article)
+                else:
+                    self.assertEqual(parser.og["og:type"], ["website"])
+                    self.assertEqual(parser.json_ld, [])
+                self.assertNotIn("FAQPage", raw)
+
+    def test_article_json_ld_uses_real_review_date_and_escapes_source_text(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "甲节点")
+        data = yaml.safe_load(alpha.read_text(encoding="utf-8"))
+        data["标题"] = '甲</script><script>alert("title")</script>'
+        data["一句话"] = '简介multi\n  Agent</script><script>alert("description")</script>&'
+        alpha.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        (root / "review_records.yaml").write_text(
+            """records:
+  alpha:
+    复核状态: 已复核
+    复核结论: 维持原判
+    复核后日期: 2026-02-01
+    履历:
+      - 日期: 2026-02-01
+        档案类型: 预审
+        复活状态: 死透
+        说明: 真实公开复核说明
+""",
+            encoding="utf-8",
+        )
+
+        output = self.build(root)
+        raw = (output / "nodes" / "alpha.html").read_text(encoding="utf-8")
+        parser = HeadMetadataParser()
+        parser.feed(raw)
+        article = json.loads(parser.json_ld[0])
+
+        self.assertEqual(article["headline"], data["标题"])
+        self.assertEqual(article["description"], '简介multi Agent</script><script>alert("description")</script>&')
+        self.assertNotIn("\n", parser.og["og:description"][0])
+        self.assertEqual(article["dateModified"], "2026-02-01")
+        self.assertNotIn("datePublished", article)
+        self.assertNotIn('</script><script>alert("description")</script>', raw)
+        self.assertIn("\\u003c/script\\u003e", raw)
+        sitemap = (output / "sitemap.xml").read_text(encoding="utf-8")
+        node_entry = sitemap.split(f"<loc>{PUBLIC_SITE_URL}/nodes/alpha.html</loc>", 1)[1].split("</url>", 1)[0]
+        self.assertIn("<lastmod>2026-02-01</lastmod>", node_entry)
+
+    def test_sitemap_exactly_covers_public_html_and_real_content_dates(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_allowlisted_excerpt_node(root)
+        output = self.build(root)
+
+        tree = ET.parse(output / "sitemap.xml")
+        namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        entries = tree.findall("s:url", namespace)
+        locations = [entry.findtext("s:loc", namespaces=namespace) for entry in entries]
+        expected_locations = {
+            PUBLIC_SITE_URL + ("/" if path == "index.html" else f"/{path}")
+            for path in (page.relative_to(output).as_posix() for page in output.rglob("*.html"))
+        }
+
+        self.assertEqual(set(locations), expected_locations)
+        self.assertEqual(len(locations), len(set(locations)))
+        self.assertIn(f"{PUBLIC_SITE_URL}/evidence/ai-legal-loophole-hunter_legislation-feedback-sources.html", locations)
+        self.assertFalse(any("/data/" in location or location.endswith((".yaml", ".json")) for location in locations))
+        allowed_frequencies = {"always", "hourly", "daily", "weekly", "monthly", "yearly", "never"}
+        priorities = []
+        for entry in entries:
+            location = entry.findtext("s:loc", namespaces=namespace)
+            parsed = urlsplit(location)
+            self.assertEqual((parsed.scheme, parsed.netloc), ("https", "resistanceyx.github.io"))
+            self.assertTrue(parsed.path.startswith("/idea-tree/"))
+            self.assertFalse(parsed.query or parsed.fragment)
+            self.assertIn(entry.findtext("s:changefreq", namespaces=namespace), allowed_frequencies)
+            priority = float(entry.findtext("s:priority", namespaces=namespace))
+            self.assertGreaterEqual(priority, 0.0)
+            self.assertLessEqual(priority, 1.0)
+            priorities.append(priority)
+            if location.endswith("/acknowledgements.html"):
+                self.assertIsNone(entry.find("s:lastmod", namespace))
+            if location.endswith("/nodes/alpha.html"):
+                self.assertEqual(entry.findtext("s:lastmod", namespaces=namespace), "2026-01-01")
+        self.assertEqual(max(priorities), 1.0)
+        self.assertLess(min(priorities), 1.0)
+
+    def test_robots_txt_is_permissive_and_points_to_absolute_sitemap(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        output = self.build(root)
+
+        content = (output / "robots.txt").read_text(encoding="utf-8")
+
+        self.assertEqual(
+            content,
+            f"User-agent: *\nAllow: /\n\nSitemap: {PUBLIC_SITE_URL}/sitemap.xml\n",
+        )
+        self.assertNotIn("Disallow", content)
+        self.assertNotIn("GPTBot", content)
+        self.assertNotIn("ClaudeBot", content)
+
+    def test_llms_txt_v2_sections_and_links_resolve_to_public_files(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        output = self.build(root)
+
+        content = (output / "llms.txt").read_text(encoding="utf-8")
+        links = re.findall(r"\[([^]]+)\]\((https://[^)]+)\)", content)
+
+        self.assertTrue(content.startswith("# idea-tree\n\n> "))
+        self.assertEqual(re.findall(r"^## .+$", content, re.MULTILINE), ["## 公开站点", "## 仓库公开文档"])
+        self.assertEqual(
+            {label for label, _url in links},
+            {"节点索引", "科技树关系图", "实现仓登记", "死法分类法", "复核清单"},
+        )
+        self.assertNotIn("evidence/", content)
+        self.assertNotIn("non-startup-tech/", content)
+        for _label, url in links:
+            with self.subTest(url=url):
+                parsed = urlsplit(url)
+                if url.startswith(PUBLIC_SITE_URL):
+                    prefix = urlsplit(PUBLIC_SITE_URL).path.rstrip("/") + "/"
+                    relative = parsed.path[len(prefix):]
+                    target = output / (relative or "index.html")
+                    self.assertTrue(target.is_file())
+                else:
+                    prefix = "/ResistanceYX/idea-tree/blob/main/"
+                    self.assertTrue(parsed.path.startswith(prefix))
+                    relative = unquote(parsed.path[len(prefix):])
+                    self.assertTrue((root / relative).is_file())
+
+    def test_layout_css_preserves_text_overflow_invariants(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        css = (repository / "site" / "assets" / "style.css").read_text(encoding="utf-8")
+        selectors = (
+            ".record-title",
+            ".record-domain",
+            ".record-deaths",
+            ".detail-aside",
+            ".detail-content",
+            ".acknowledgements-content",
+            ".implementation-node",
+            ".implementation-repository",
+            ".graph-map-panel",
+            ".graph-inspector",
+        )
+
+        for selector in selectors:
+            with self.subTest(selector=selector):
+                self.assertIn(selector, css)
+                bodies = [
+                    match.group(2)
+                    for match in re.finditer(r"([^{}]+)\{([^{}]*)\}", css)
+                    if selector in match.group(1)
+                ]
+                self.assertTrue(bodies)
+                for body in bodies:
+                    self.assertIsNone(re.search(r"(?<!-)width\s*:\s*\d+px", body))
+        self.assertIn("h1, h2, h3, p { overflow-wrap: anywhere; }", css)
+        self.assertRegex(css, r"\.graph-canvas\s*\{[^}]*overflow-x:\s*auto")
+        self.assertRegex(css, r"\.graph-svg\s*\{[^}]*min-width:\s*960px")
 
     def test_output_directory_cannot_erase_repository_or_parent(self) -> None:
         root = self.make_repo()

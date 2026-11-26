@@ -53,6 +53,13 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 .topnav { display: flex; align-items: center; gap: 12px; }
 .topnav a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 4px; color: var(--text); font-size: 14px; font-weight: 650; text-decoration: none; }
 .topnav a:hover { color: var(--cyan-soft); text-decoration: underline; text-decoration-thickness: 1px; }
+.topnav a[aria-current="page"] {
+  color: var(--gold-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 7px;
+}
 .shell { width: min(calc(100% - 32px), 1440px); margin: 0 auto; }
 .index-layout { display: grid; gap: 40px; padding: 40px 0 72px; }
 .intro { min-width: 0; }
@@ -209,6 +216,7 @@ h1, h2, h3 { font-family: var(--serif); }
 .notice { margin: 18px 0 0; padding: 13px 16px; background: rgba(25, 30, 38, .88); border-left: 2px solid var(--gold); color: var(--text); }
 .search-index-status { margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .sort-note { max-width: 76ch; margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.sort-control { max-width: 460px; margin: 0 0 12px; }
 .search-match { padding: 14px 0 18px; border-top: 1px dashed var(--line-strong); }
 .search-match-entry + .search-match-entry { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .search-match-location { margin: 0; color: var(--gold-soft); font-size: 12px; font-weight: 650; }
@@ -317,6 +325,13 @@ h1, h2, h3 { font-family: var(--serif); }
 .graph-view-button[aria-pressed="true"] { background: var(--gold); color: var(--bg); }
 .graph-view-button:hover { border-color: var(--cyan); }
 .graph-status { max-width: 76ch; margin: 12px 0 0; color: var(--cyan-soft); font-size: 13px; }
+.graph-loading { max-width: 76ch; margin: 20px 0 0; }
+.graph-search-field { max-width: 620px; margin-top: 20px; }
+.graph-map-title { margin: 14px 0 0; color: var(--gold-soft); font-size: 18px; scroll-margin-top: 88px; }
+.graph-pan-hint { display: none; margin: 12px 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.graph-canvas[tabindex] { scroll-margin-top: 88px; }
+#graph-inspector-title { scroll-margin-top: 88px; }
+.graph-return-map { display: inline-flex; align-items: center; min-height: 44px; margin: 4px 0 12px; color: var(--cyan-soft); font-size: 13px; font-weight: 650; }
 .graph-workspace { display: grid; gap: 30px; margin-top: 24px; }
 .graph-map-panel { min-width: 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
 .graph-toolbar { display: grid; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
@@ -401,7 +416,7 @@ h1, h2, h3 { font-family: var(--serif); }
 .graph-focus-link { flex: none; }
 
 @media (min-width: 700px) {
-  .graph-toolbar { grid-template-columns: minmax(220px, 1fr) minmax(150px, .45fr); align-items: end; }
+  .graph-toolbar { grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto; align-items: end; }
 }
 
 @media (min-width: 1000px) {
@@ -419,8 +434,13 @@ h1, h2, h3 { font-family: var(--serif); }
 }
 
 @media (min-width: 1300px) {
-  .graph-toolbar { grid-template-columns: minmax(220px, 1fr) 160px auto 110px; }
+  .graph-toolbar { grid-template-columns: 160px minmax(220px, 1fr) 110px; }
   .graph-isolated-option { white-space: nowrap; }
+}
+
+@media (max-width: 899px) {
+  .graph-pan-hint { display: block; }
+  .graph-map-title, #graph-inspector-title, .graph-canvas[tabindex] { scroll-margin-top: 20px; }
 }
 
 @media (min-width: 800px) {
@@ -478,12 +498,47 @@ h1, h2, h3 { font-family: var(--serif); }
 @media (max-width: 620px) {
   html { background-image: none; }
   .topbar { position: static; }
-  .topbar-inner { align-items: flex-start; padding: 9px 0; gap: 12px; }
-  .brand-lockup { flex-wrap: wrap; gap: 4px 10px; padding-top: 3px; }
-  .brand-slogan { font-size: 12px; letter-spacing: .04em; white-space: normal; }
-  .brand-divider { height: 16px; }
-  .topnav { flex: none; flex-direction: column; align-items: flex-end; gap: 0; }
-  .topnav a { min-height: 44px; padding: 4px 0 4px 8px; font-size: 13px; }
+  .topbar-inner {
+    min-height: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: 8px 0 0;
+  }
+  .brand-lockup {
+    min-height: 36px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding-top: 0;
+  }
+  .brand-slogan {
+    min-width: 0;
+    font-size: 12px;
+    letter-spacing: .04em;
+    line-height: 1.5;
+    white-space: normal;
+  }
+  .brand-divider { flex: none; height: 16px; }
+  .topnav {
+    width: 100%;
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .topnav a {
+    min-width: 0;
+    min-height: 44px;
+    flex: 0 1 auto;
+    justify-content: center;
+    padding: 4px;
+    font-size: 13px;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
   .index-layout, .detail-layout, .acknowledgements-layout { padding-top: 32px; gap: 42px; }
   .graph-layout { padding-top: 32px; }
   .graph-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -509,7 +564,7 @@ h1, h2, h3 { font-family: var(--serif); }
 
 @media (max-width: 380px) {
   .brand-divider { display: none; }
-  .brand-slogan { flex-basis: 100%; }
+  .brand-slogan { flex-basis: auto; }
   .distribution-row { grid-template-columns: 70px 1fr 80px; gap: 6px; }
 }
 
@@ -550,7 +605,7 @@ h1, h2, h3 { font-family: var(--serif); }
   html, body { background: #fff; color: #000; }
   html { background-image: none; }
   body { font-size: 11pt; line-height: 1.65; }
-  .topbar, .footer, .skip-link, .no-print, .death-actions, .print-button, .source-link, .graph-view-controls, .graph-workspace, .graph-status, .graph-focus-link { display: none !important; }
+  .topbar, .footer, .skip-link, .no-print, .death-actions, .print-button, .source-link, .graph-view-controls, .graph-workspace, .graph-status, .graph-focus-link, .graph-search-field, .graph-loading { display: none !important; }
   .graph-list-section[hidden] { display: block !important; }
   .graph-list-section { margin-top: 20pt; }
   .graph-list-entry, .graph-list-group { break-inside: avoid; }

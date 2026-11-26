@@ -32,9 +32,35 @@
     const reset = document.querySelector('#reset-filters');
     const resultLink = document.querySelector('#filter-results-link');
     const indexStatus = document.querySelector('#search-index-status');
+    const catalog = document.querySelector('.catalog');
+    const sortControl = document.querySelector('#sort-control');
+    const sortSelect = document.querySelector('#record-sort');
     let fullIndex = null;
     let indexPromise = null;
     let indexFailed = false;
+
+    function compareText(left, right) {
+      return left < right ? -1 : left > right ? 1 : 0;
+    }
+
+    function sortRecords() {
+      if (!catalog || !sortSelect || !empty) return;
+      const mode = sortSelect.value;
+      const direction = mode.endsWith('-desc') ? -1 : 1;
+      const byNumber = mode.startsWith('number-');
+      const key = (record) => {
+        if (byNumber) return record.dataset.number || '';
+        return record.dataset.expiry || '9999-12-31';
+      };
+
+      const sorted = [...records].sort((left, right) => {
+        const primary = compareText(key(left), key(right));
+        return direction * primary || compareText(left.dataset.number || '', right.dataset.number || '');
+      });
+      const fragment = document.createDocumentFragment();
+      sorted.forEach((record) => fragment.appendChild(record));
+      catalog.insertBefore(fragment, empty);
+    }
 
     function setIndexStatus(message) {
       if (!indexStatus) return;
@@ -201,6 +227,13 @@
       applyFilters();
       search.focus();
     });
+    if (catalog && sortControl && sortSelect && empty) {
+      sortSelect.addEventListener('change', () => {
+        sortRecords();
+        applyFilters();
+      });
+      sortControl.hidden = false;
+    }
   }
 
   function initSectionJumps() {
@@ -288,7 +321,7 @@
   }
 
   function initExpiryStatuses(now = new Date()) {
-    document.querySelectorAll('[data-expiry]').forEach((container) => {
+    document.querySelectorAll('.record-expiry[data-expiry], .metadata-expiry[data-expiry]').forEach((container) => {
       const days = daysUntilExpiry(container.dataset.expiry, now);
       if (days === null || days > 30) return;
       const output = document.createElement('span');

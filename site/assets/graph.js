@@ -6,10 +6,15 @@
 
   const ui = {
     workspace,
+    browser: document.getElementById("graph-browser"),
+    loading: document.getElementById("graph-loading"),
     canvas: document.getElementById("graph-canvas"),
     controls: document.getElementById("graph-view-controls"),
     status: document.getElementById("graph-status"),
+    searchField: document.getElementById("graph-search-field"),
     list: document.getElementById("graph-list"),
+    listCount: document.getElementById("graph-list-count"),
+    listEmpty: document.getElementById("graph-list-empty"),
     inspector: document.getElementById("graph-inspector"),
     search: document.getElementById("graph-search"),
     kind: document.getElementById("graph-kind"),
@@ -21,10 +26,20 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   const viewButtons = [...document.querySelectorAll("[data-graph-view]")];
   const focusLinks = [...document.querySelectorAll("[data-node-focus]")];
+  const listEntries = [...document.querySelectorAll(".graph-list-entry[data-node-id]")];
+  const listGroups = [...document.querySelectorAll(".graph-list-group")];
+  const compactGraph = window.matchMedia("(max-width: 899px)");
+  const desktopQuery = window.matchMedia("(min-width: 900px)");
+  const staticListCount = ui.listCount.textContent;
+  const staticGroupCounts = new Map(listGroups.map((group) => [
+    group,
+    group.querySelector("h3 span")?.textContent || "0",
+  ]));
   let graph = null;
   let nodeById = new Map();
   let selectedId = "";
   let view = "list";
+  let ready = false;
 
   function svgElement(tag, attributes = {}, content = "") {
     const element = document.createElementNS(SVG_NS, tag);
@@ -73,16 +88,21 @@
     return graph.edges.filter((edge) => kind === "all" || edge.kind === kind);
   }
 
+  function nodeMatches(node, query) {
+    if (!query) return true;
+    if (!node) return false;
+    return `${node.编号} ${node.id} ${node.title || node.标题}`
+      .toLocaleLowerCase()
+      .includes(query);
+  }
+
   function currentSelection() {
     const edges = filteredEdges();
     const query = ui.search.value.trim().toLocaleLowerCase();
     const activeIds = new Set(edges.flatMap((edge) => [edge.source, edge.target]));
     const matches = new Set(
       graph.nodes
-        .filter((node) => {
-          if (!query) return false;
-          return `${node.编号} ${node.id} ${node.title || node.标题}`.toLocaleLowerCase().includes(query);
-        })
+        .filter((node) => query && nodeMatches(node, query))
         .map((node) => node.id),
     );
 
@@ -105,6 +125,39 @@
       return !query || matches.has(edge.source) || matches.has(edge.target);
     });
     return { visibleNodes, visibleEdges, matches, query, totalEdges: edges.length };
+  }
+
+  function updateList() {
+    const query = ui.search.value.trim().toLocaleLowerCase();
+    let visible = 0;
+
+    for (const entry of listEntries) {
+      const node = nodeById.get(entry.dataset.nodeId);
+      const matched = !query || nodeMatches(node, query);
+      entry.hidden = !matched;
+      if (matched) visible += 1;
+    }
+
+    for (const group of listGroups) {
+      const entries = [...group.querySelectorAll(".graph-list-entry")];
+      const groupVisible = entries.filter((entry) => !entry.hidden).length;
+      group.hidden = groupVisible === 0;
+      const count = group.querySelector("h3 span");
+      if (count) count.textContent = String(groupVisible);
+    }
+
+    ui.listEmpty.hidden = visible !== 0;
+    ui.listCount.textContent = query
+      ? `显示 ${visible} / ${graph.nodes.length} 个节点`
+      : `${graph.nodes.length} 个节点 · ${graph.edges.length} 对去重关系`;
+    return { query, visible };
+  }
+
+  function announceList(result = updateList()) {
+    const { query, visible } = result;
+    setStatus(query
+      ? `完整列表显示 ${visible} / ${graph.nodes.length} 个标题、编号或id匹配节点；节点内关系原文完整保留。`
+      : "");
   }
 
   function connectedGroups(nodes, edges) {
@@ -350,17 +403,29 @@
     ui.inspector.append(htmlElement("p", "kicker", "Node inspector"));
     const node = nodeById.get(selectedId);
     if (!node) {
+      const emptyTitle = htmlElement("h2", "", "选择一个节点");
+      emptyTitle.id = "graph-inspector-title";
+      emptyTitle.tabIndex = -1;
       ui.inspector.append(
-        htmlElement("h2", "", "选择一个节点"),
+        emptyTitle,
         htmlElement("p", "", "在图中选择节点，查看完整名称、状态与双端关系说明。也可使用键盘 Tab 移动焦点，Enter 或空格选择。"),
       );
       return;
     }
     const title = htmlElement("h2", "", node.标题);
     title.id = "graph-inspector-title";
+    title.tabIndex = -1;
     const detailLink = htmlElement("a", "graph-detail-link", "阅读完整档案 →");
     detailLink.href = node.页面;
+    const returnLink = htmlElement("a", "graph-return-map", "↑ 返回关系图");
+    returnLink.id = "graph-return-map";
+    returnLink.href = "#graph-map-title";
+    returnLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (!focusGraphNode(node.id)) focusMapTitle();
+    });
     ui.inspector.append(
+      returnLink,
       title,
       htmlElement("p", "record-id", `#${node.编号} · ${node.id}`),
       htmlElement("p", "graph-inspector-meta", `${node.领域} · ${node.档案类型} · ${node.复活状态}`),
@@ -400,19 +465,35 @@
     ui.inspector.append(list);
   }
 
-  function focusGraphNode(nodeId) {
-    const target = ui.canvas.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
-    if (!target) return;
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "center", inline: "center" });
+  function focusInspector() {
+    const title = document.getElementById("graph-inspector-title");
+    if (!title) return;
+    title.focus({ preventScroll: true });
+    title.scrollIntoView({ block: "start" });
   }
 
-  function selectNode(nodeId, { updateHash = true, focusGraph = false } = {}) {
+  function focusMapTitle() {
+    const title = document.getElementById("graph-map-title");
+    if (!title) return;
+    title.focus({ preventScroll: true });
+    title.scrollIntoView({ block: "start" });
+  }
+
+  function focusGraphNode(nodeId) {
+    const target = ui.canvas.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
+    if (!target) return false;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "center", inline: "center" });
+    return true;
+  }
+
+  function selectNode(nodeId, { updateHash = true, destination = "none" } = {}) {
     if (!nodeById.has(nodeId)) return;
     selectedId = nodeId;
     if (updateHash) replaceHash(nodeId);
     setView("graph", false);
-    if (focusGraph) focusGraphNode(nodeId);
+    if (destination === "graph") focusGraphNode(nodeId);
+    else if (destination === "inspector") focusInspector();
   }
 
   function renderGraph() {
@@ -538,12 +619,16 @@
       );
       link.addEventListener("click", (event) => {
         event.preventDefault();
-        selectNode(node.id);
+        selectNode(node.id, {
+          destination: compactGraph.matches ? "inspector" : "none",
+        });
       });
       link.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          selectNode(node.id);
+          selectNode(node.id, {
+            destination: compactGraph.matches ? "inspector" : "graph",
+          });
         }
       });
       nodeLayer.append(link);
@@ -569,10 +654,35 @@
   function clearFilters() {
     ui.search.value = "";
     ui.kind.value = "all";
-    ui.isolated.checked = false;
+    ui.isolated.checked = true;
     selectedId = "";
     replaceHash();
+    updateList();
     setView("graph");
+  }
+
+  function restoreStaticList() {
+    ui.search.value = "";
+    ui.kind.value = "all";
+    ui.isolated.checked = true;
+    listEntries.forEach((entry) => { entry.hidden = false; });
+    listGroups.forEach((group) => {
+      group.hidden = false;
+      const count = group.querySelector("h3 span");
+      if (count) count.textContent = staticGroupCounts.get(group) || "0";
+    });
+    ui.listCount.textContent = staticListCount;
+    ui.listEmpty.hidden = true;
+  }
+
+  function locateInGraph(nodeId) {
+    const node = nodeById.get(nodeId);
+    if (!node) return;
+    const query = ui.search.value.trim().toLocaleLowerCase();
+    if (!nodeMatches(node, query)) ui.search.value = "";
+    ui.isolated.checked = true;
+    updateList();
+    selectNode(nodeId, { destination: "graph" });
   }
 
   function initialise(payload) {
@@ -589,49 +699,68 @@
       if (!nodeById.has(edge.source) || !nodeById.has(edge.target)) throw new Error("invalid graph edge");
     }
 
-    ui.controls.hidden = false;
-    focusLinks.forEach((link) => { link.hidden = false; });
     viewButtons.forEach((button) => {
-      button.addEventListener("click", () => setView(button.dataset.graphView));
+      button.addEventListener("click", () => {
+        if (!ready) return;
+        setView(button.dataset.graphView);
+        if (view === "list") announceList();
+      });
     });
     focusLinks.forEach((link) => {
       link.addEventListener("click", (event) => {
         event.preventDefault();
-        selectNode(link.dataset.nodeFocus, { focusGraph: true });
+        if (ready) locateInGraph(link.dataset.nodeFocus);
       });
     });
     ui.search.addEventListener("input", () => {
+      if (!ready) return;
       selectedId = "";
       replaceHash();
-      renderGraph();
+      const result = updateList();
+      if (view === "graph") renderGraph();
+      else announceList(result);
     });
     ui.kind.addEventListener("change", () => {
+      if (!ready) return;
       selectedId = "";
       replaceHash();
       renderGraph();
     });
     ui.isolated.addEventListener("change", () => {
+      if (!ready) return;
       selectedId = "";
       replaceHash();
       renderGraph();
     });
-    ui.reset.addEventListener("click", clearFilters);
+    ui.reset.addEventListener("click", () => {
+      if (ready) clearFilters();
+    });
     window.addEventListener("hashchange", () => {
+      if (!ready) return;
       selectedId = idFromHash();
-      if (selectedId) {
-        setView("graph");
-        focusGraphNode(selectedId);
-      } else {
-        renderGraph();
-        renderInspector();
-      }
+      if (selectedId) locateInGraph(selectedId);
+      else if (view === "graph") renderGraph();
+      else announceList();
     });
 
+    ui.controls.hidden = false;
+    ui.searchField.hidden = false;
+    focusLinks.forEach((link) => { link.hidden = false; });
     selectedId = idFromHash();
-    const desktop = window.matchMedia("(min-width: 900px)").matches;
-    setView(selectedId || desktop ? "graph" : "list");
+    ui.isolated.checked = true;
+    updateList();
+    setView(selectedId || desktopQuery.matches ? "graph" : "list");
     if (selectedId) focusGraphNode(selectedId);
+    ready = true;
+    ui.loading.hidden = true;
+    ui.browser.setAttribute("aria-busy", "false");
   }
+
+  if (desktopQuery.matches || window.location.hash.startsWith("#node-")) {
+    ui.list.hidden = true;
+  }
+  ui.loading.hidden = false;
+  ui.browser.setAttribute("aria-busy", "true");
 
   fetch("data/graph.json", { headers: { Accept: "application/json" } })
     .then((response) => {
@@ -640,11 +769,17 @@
     })
     .then(initialise)
     .catch(() => {
+      ready = false;
       selectedId = "";
+      view = "list";
+      ui.loading.hidden = true;
+      ui.browser.setAttribute("aria-busy", "false");
       ui.workspace.hidden = true;
       ui.controls.hidden = true;
+      ui.searchField.hidden = true;
       ui.list.hidden = false;
       focusLinks.forEach((link) => { link.hidden = true; });
+      restoreStaticList();
       setStatus("图形数据未能加载。以下完整静态关系列表仍可使用；请稍后重试或检查部署资源。");
     });
 })();

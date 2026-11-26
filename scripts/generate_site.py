@@ -23,6 +23,7 @@ except ModuleNotFoundError:  # Direct execution: python scripts/generate_site.py
     from node_files import node_identity, node_sort_key, parse_node_filename
 
 REPOSITORY_URL = "https://github.com/ResistanceYX/idea-tree"
+PUBLIC_SITE_URL = "https://resistanceyx.github.io/idea-tree"
 DEATH_TYPES = (
     "伪需求",
     "钱算不平",
@@ -284,7 +285,39 @@ def revival_class(status: str) -> str:
     return {"死透": "dead", "复活候选": "candidate", "已复活": "revived"}.get(status, "unknown")
 
 
-def page_head(title: str, description: str, prefix: str = "") -> str:
+def public_url(path: str = "index.html") -> str:
+    """Return the canonical absolute URL for one generated public path."""
+    if path == "index.html":
+        return PUBLIC_SITE_URL + "/"
+    return f"{PUBLIC_SITE_URL}/{quote(path, safe='/.')}"
+
+
+def json_ld_script(data: dict) -> str:
+    """Serialize structured data without allowing source text to close the script."""
+    payload = json.dumps(data, ensure_ascii=False, sort_keys=True)
+    payload = (
+        payload.replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+    return f'<script type="application/ld+json">{payload}</script>'
+
+
+def page_head(
+    title: str,
+    description: str,
+    prefix: str = "",
+    *,
+    path: str = "index.html",
+    og_type: str = "website",
+    structured_data: dict | None = None,
+) -> str:
+    canonical = public_url(path)
+    title = searchable_text(title)
+    description = searchable_text(description)
+    structured_data_html = json_ld_script(structured_data) if structured_data else ""
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -293,8 +326,15 @@ def page_head(title: str, description: str, prefix: str = "") -> str:
   <meta name="description" content="{escape(description)}">
   <meta name="theme-color" content="#12151c">
   <title>{escape(title)} · idea-tree</title>
+  <link rel="canonical" href="{escape(canonical)}">
+  <link rel="describedby" href="{escape(public_url('llms.txt'))}">
+  <meta property="og:title" content="{escape(title)}">
+  <meta property="og:description" content="{escape(description)}">
+  <meta property="og:url" content="{escape(canonical)}">
+  <meta property="og:type" content="{escape(og_type)}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2312151c'/%3E%3Cpath d='M32 12v40M32 26 18 18M32 34l14-8M32 44 20 52' fill='none' stroke='%23c5a059' stroke-width='4'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="{prefix}assets/style.css">
+  {structured_data_html}
 </head>
 <body>
 <a class="skip-link" href="#main-content">跳到正文</a>"""
@@ -556,7 +596,11 @@ def render_acknowledgements(people: list[dict]) -> str:
         sections.append('<p class="empty-state">ACKNOWLEDGEMENTS/目录中暂无可公开展示的鸣谢记录。</p>')
     return "\n".join(
         (
-            page_head("特别鸣谢", "idea-tree项目AI助手及其公开工作记录。"),
+            page_head(
+                "特别鸣谢",
+                "idea-tree项目AI助手及其公开工作记录。",
+                path="acknowledgements.html",
+            ),
             page_header(detail=True),
             f'''<main id="main-content" class="shell acknowledgements-layout">
   <aside class="acknowledgements-aside">
@@ -674,7 +718,11 @@ def render_implementations(implementations: list[dict]) -> str:
     )
     return "\n".join(
         (
-            page_head("简易实现仓库", "idea-tree正式节点对应的独立实现仓库及其实现范围。"),
+            page_head(
+                "简易实现仓库",
+                "idea-tree正式节点对应的独立实现仓库及其实现范围。",
+                path="implementations.html",
+            ),
             page_header(detail=True),
             f'''<main id="main-content" class="shell acknowledgements-layout implementations-layout">
   <aside class="acknowledgements-aside implementations-aside">
@@ -784,7 +832,11 @@ def render_public_reserve(entries: list[dict]) -> str:
 
     return "\n".join(
         (
-            page_head("非创业技术储备", "idea-tree非创业技术储备的标题、一句话与GitHub原文导航。"),
+            page_head(
+                "非创业技术储备",
+                "idea-tree非创业技术储备的标题、一句话与GitHub原文导航。",
+                path="non-startup-tech.html",
+            ),
             page_header(detail=True),
             f'''<main id="main-content" class="shell acknowledgements-layout reserve-layout">
   <aside class="acknowledgements-aside reserve-aside">
@@ -1182,6 +1234,33 @@ def render_index(
     )
 
 
+def node_content_date(data: dict, review: dict | None = None) -> str:
+    """Use only real archive dates; never substitute the site generation day."""
+    dates = [text(data.get("审核日期")).strip()]
+    if review:
+        dates.append(text(review.get("复核后日期")).strip())
+    return max((value for value in dates if value), default="")
+
+
+def article_structured_data(data: dict, review: dict | None = None) -> dict:
+    """Build the minimal truthful Article set available from the public archive."""
+    result = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": searchable_text(data.get("标题", data.get("id", ""))),
+        "description": searchable_text(data.get("一句话")),
+        "author": {
+            "@type": "Person",
+            "name": text(data.get("审核人")),
+        },
+    }
+    modified = node_content_date(data, review)
+    if modified:
+        # 审核日期可在实质复核后更新；没有首次发布日期字段时不伪造datePublished。
+        result["dateModified"] = modified
+    return result
+
+
 def render_detail(
     file: Path,
     data: dict,
@@ -1318,7 +1397,14 @@ def render_detail(
 
     return "\n".join(
         (
-            page_head(title, one_line or f"{title}的死因、证据与可拆零件。", "../"),
+            page_head(
+                title,
+                one_line or f"{title}的死因、证据与可拆零件。",
+                "../",
+                path=f"nodes/{node_id}.html",
+                og_type="article",
+                structured_data=article_structured_data(data, review),
+            ),
             page_header("../", detail=True),
             f"""<main id="main-content" class="shell detail-layout">
   <aside class="detail-aside">
@@ -1372,6 +1458,7 @@ def render_public_evidence_page(
                 f"公开文献摘录卡 · #{node_number}",
                 f"{title}的公开文献数据摘录与来源说明。",
                 "../",
+                path=f"evidence/{source.stem}.html",
             ),
             page_header("../", detail=True),
             f"""<main id="main-content" class="shell detail-layout">
@@ -1589,7 +1676,11 @@ def render_graph(records: list[tuple[Path, dict]]) -> str:
     )
     return "\n".join(
         (
-            page_head("科技树关系图", "由正式节点YAML自动派生的直接派生、相关关系与孤立节点完整列表。"),
+            page_head(
+                "科技树关系图",
+                "由正式节点YAML自动派生的直接派生、相关关系与孤立节点完整列表。",
+                path="graph.html",
+            ),
             page_header(current="graph"),
             f"""<main id="main-content" class="shell graph-layout">
   <section class="graph-intro" aria-labelledby="graph-title">
@@ -1699,6 +1790,96 @@ def build_public_evidence(
         )
 
 
+def render_llms_txt() -> str:
+    """Curate the small public entry set defined by the llms.txt v2 proposal."""
+    return f"""# idea-tree
+
+> 创业点子的死法档案与科技树：收录正式节点的预审或验尸、死因分类、公开证据、可拆零件、复活状态与复核入口；AI初稿，人类审核定案。
+
+正式节点与非创业技术储备分开管理。本站内容是带不确定性的档案与可孵化项目种子，不把预审写成已经发生的失败，也不把复活候选写成商业闭环已经确立。
+
+## 公开站点
+
+- [节点索引]({public_url()}): 检索全部正式节点、死法分布、复核动态与公开档案。
+- [科技树关系图]({public_url('graph.html')}): 查看由正式YAML双端声明生成的直接派生、一般相关与孤立节点。
+- [实现仓登记]({public_url('implementations.html')}): 查看正式节点对应的简易实现仓库及已核实的实现边界。
+
+## 仓库公开文档
+
+- [死法分类法]({REPOSITORY_URL}/blob/main/README.md#死法分类法-v12): 项目公开README中的现行分类与编辑口径。
+- [复核清单]({REPOSITORY_URL}/blob/main/REVIEW.md): 由节点与人工复核记录自动生成的保质期复核清单。
+"""
+
+
+def render_robots_txt() -> str:
+    """Emit the requested permissive file; project-path limitations belong in the log."""
+    return f"User-agent: *\nAllow: /\n\nSitemap: {public_url('sitemap.xml')}\n"
+
+
+def render_sitemap(entries: list[dict]) -> str:
+    """Render a restrained sitemap with no fabricated generation-day timestamps."""
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for entry in entries:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{html.escape(public_url(entry['path']), quote=False)}</loc>")
+        if entry.get("lastmod"):
+            lines.append(f"    <lastmod>{escape(entry['lastmod'])}</lastmod>")
+        lines.append(f"    <changefreq>{escape(entry['changefreq'])}</changefreq>")
+        lines.append(f"    <priority>{escape(entry['priority'])}</priority>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    return "\n".join(lines) + "\n"
+
+
+def build_discovery_files(
+    output: Path,
+    records: list[tuple[Path, dict]],
+    reviews: dict[str, dict],
+) -> None:
+    """Generate discovery products from the actual public HTML and archive dates."""
+    dates_by_path: dict[str, str] = {}
+    content_dates = []
+    for file, data in records:
+        _number, node_id = node_identity(file, data)
+        modified = node_content_date(data, reviews.get(node_id))
+        if modified:
+            dates_by_path[f"nodes/{node_id}.html"] = modified
+            content_dates.append(modified)
+    latest_node_date = max(content_dates, default="")
+    if latest_node_date:
+        dates_by_path["index.html"] = latest_node_date
+        dates_by_path["graph.html"] = latest_node_date
+
+    entries = []
+    for page in sorted(output.rglob("*.html")):
+        path = page.relative_to(output).as_posix()
+        if path == "index.html":
+            changefreq, priority = "weekly", "1.0"
+        elif path == "graph.html":
+            changefreq, priority = "weekly", "0.8"
+        elif path.startswith("nodes/"):
+            changefreq, priority = "monthly", "0.8"
+        elif path.startswith("evidence/"):
+            changefreq, priority = "yearly", "0.3"
+        else:
+            changefreq, priority = "monthly", "0.5"
+        entries.append(
+            {
+                "path": path,
+                "lastmod": dates_by_path.get(path, ""),
+                "changefreq": changefreq,
+                "priority": priority,
+            }
+        )
+
+    (output / "sitemap.xml").write_text(render_sitemap(entries), encoding="utf-8")
+    (output / "llms.txt").write_text(render_llms_txt(), encoding="utf-8")
+    (output / "robots.txt").write_text(render_robots_txt(), encoding="utf-8")
+
+
 def build_site(root: Path, output: Path) -> int:
     root = root.resolve()
     output = output.resolve()
@@ -1774,6 +1955,7 @@ def build_site(root: Path, output: Path) -> int:
     shutil.copy2(assets / "site.js", output / "assets" / "site.js")
     shutil.copy2(assets / "graph.js", output / "assets" / "graph.js")
     (output / ".nojekyll").write_text("", encoding="utf-8")
+    build_discovery_files(output, records, reviews)
     return len(records)
 
 

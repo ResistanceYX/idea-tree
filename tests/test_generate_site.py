@@ -245,6 +245,16 @@ class SiteGeneratorTests(unittest.TestCase):
         content = render_index(load_nodes(root))
 
         self.assertIn('<span class="brand-slogan">每个点子，只死一次。</span>', content)
+        self.assertIn('href="index.html" aria-current="page"', content)
+        self.assertIn('id="sort-control" hidden', content)
+        self.assertIn('<select id="record-sort">', content)
+        self.assertIn('<option value="expiry-asc" selected>', content)
+        self.assertIn('<option value="expiry-desc">', content)
+        self.assertIn('<option value="number-asc">', content)
+        self.assertIn('<option value="number-desc">', content)
+        self.assertIn('data-number="0001"', content)
+        self.assertIn('data-expiry="2028-01-01"', content)
+        self.assertIn('搜索和筛选只隐藏节点，不改变所选顺序。', content)
         self.assertIn('<h1 class="archive-title">死法档案</h1>', content)
         self.assertNotIn('<h1>每个点子', content)
         self.assertEqual(content.count('1（50.0%）'), 2)
@@ -311,6 +321,28 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertLess(content.index('href="implementations.html"'), content.index('href="non-startup-tech.html"'))
         self.assertIn('href="nodes/alpha.html"', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
+
+    def test_index_default_order_is_expiry_then_number(self) -> None:
+        root = self.make_repo()
+        alpha = self.add_node(root, "alpha", "较晚节点")
+        beta = self.add_node(root, "beta", "同日期小编号")
+        gamma = self.add_node(root, "gamma", "同日期大编号")
+        for file, expiry in (
+            (alpha, "2028-01-01"),
+            (beta, "2027-01-01"),
+            (gamma, "2027-01-01"),
+        ):
+            data = yaml.safe_load(file.read_text(encoding="utf-8"))
+            data["死因保质期"] = expiry
+            file.write_text(
+                yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+
+        content = render_index(load_nodes(root))
+
+        self.assertLess(content.index('data-node-id="beta"'), content.index('data-node-id="gamma"'))
+        self.assertLess(content.index('data-node-id="gamma"'), content.index('data-node-id="alpha"'))
 
     def test_quick_view_uses_excerpt_and_at_most_three_parts(self) -> None:
         root = self.make_repo()
@@ -390,7 +422,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('src="../assets/site.js"', content)
         self.assertIn('href="beta.html">#0002 · 乙节点</a>', content)
         self.assertNotIn('href="beta.html">beta</a>', content)
-        self.assertIn('href="../index.html"', content)
+        self.assertIn('<a href="../index.html">返回节点索引</a>', content)
         self.assertIn('href="../graph.html#node-alpha"', content)
         self.assertIn('在科技树中查看 →', content)
         self.assertIn('/blob/main/nodes/0001-alpha.yaml', content)
@@ -1089,7 +1121,7 @@ class SiteGeneratorTests(unittest.TestCase):
 
         self.assertIn('class="record-expiry" data-expiry="2028-01-01"', index)
         self.assertIn('<time class="expiry-date" datetime="2028-01-01">2028-01-01</time>', index)
-        self.assertIn("默认按死因保质期升序排列；同日期按永久编号升序排列。搜索和筛选不改变顺序。", index)
+        self.assertIn("默认按死因保质期正序排列；同日期按永久编号正序排列。启用 JavaScript 后可切换排序；搜索和筛选只隐藏节点，不改变所选顺序。", index)
         self.assertIn('class="metadata-expiry" data-expiry="2028-01-01"', detail)
         self.assertIn('<button class="print-button no-print" id="print-detail" type="button" hidden>', detail)
         self.assertIn('<a class="evidence-link" href="https://example.com/evidence"', detail)
@@ -1191,9 +1223,22 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertIn('<strong>1</strong><span>孤立节点</span>', content)
         self.assertIn('id="graph-workspace" aria-label="交互式科技树" hidden', content)
         self.assertIn('id="graph-view-controls" role="group" aria-label="科技树视图" hidden', content)
-        self.assertIn('id="node-alpha" tabindex="-1"', content)
-        self.assertIn('id="node-beta" tabindex="-1"', content)
-        self.assertIn('id="node-gamma" tabindex="-1"', content)
+        self.assertIn('id="graph-browser"', content)
+        self.assertIn('id="graph-loading" role="status" hidden', content)
+        self.assertIn('id="graph-search-field" hidden', content)
+        self.assertIn('同时筛选图形和完整列表', content)
+        self.assertIn('id="graph-map-title" tabindex="-1"', content)
+        self.assertIn('id="graph-pan-hint"', content)
+        self.assertIn('aria-describedby="graph-pan-hint" tabindex="0"', content)
+        self.assertIn('id="graph-inspector-title" tabindex="-1"', content)
+        self.assertIn('id="graph-show-isolated" type="checkbox" checked', content)
+        self.assertIn('id="graph-list-count"', content)
+        self.assertIn('id="graph-list-empty" hidden', content)
+        self.assertIn('id="node-alpha" data-node-id="alpha" tabindex="-1"', content)
+        self.assertIn('id="node-beta" data-node-id="beta" tabindex="-1"', content)
+        self.assertIn('id="node-gamma" data-node-id="gamma" tabindex="-1"', content)
+        self.assertLess(content.index('id="graph-search-field"'), content.index('id="graph-workspace"'))
+        self.assertNotIn('id="graph-browser" aria-busy="true"', content)
         self.assertIn("甲到乙", content)
         self.assertIn("乙到甲", content)
         self.assertIn('src="assets/graph.js"', content)

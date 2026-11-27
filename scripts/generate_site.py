@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import posixpath
 import re
 import shutil
 import sys
 from collections import Counter, defaultdict
+from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
@@ -854,6 +856,298 @@ def render_public_reserve(entries: list[dict]) -> str:
     )
 
 
+def parse_maintenance_logs(root: Path) -> list[dict]:
+    """Load dated public maintenance events; never treat the rules README as an event."""
+    directory = root / "MAINTENANCE"
+    if not directory.is_dir():
+        return []
+
+    entries = []
+    for source in sorted(directory.rglob("*.md")):
+        relative = source.relative_to(root).as_posix()
+        if relative == "MAINTENANCE/README.md":
+            continue
+        match = re.fullmatch(
+            r"MAINTENANCE/(?P<year>\d{4})/(?P<month>\d{2})/"
+            r"(?P<date>\d{4}-\d{2}-\d{2})-(?P<slug>[a-z0-9-]+)\.md",
+            relative,
+        )
+        if not match:
+            raise ValueError(f"维护日志路径不符合 MAINTENANCE/YYYY/MM/日期-英文主题.md：{relative}")
+        try:
+            started = date.fromisoformat(match.group("date"))
+        except ValueError as exc:
+            raise ValueError(f"维护日志文件名日期无效：{relative}") from exc
+        if started.year != int(match.group("year")) or started.month != int(match.group("month")):
+            raise ValueError(f"维护日志年月目录与文件名日期不一致：{relative}")
+
+        content = source.read_text(encoding="utf-8")
+        lines = content.splitlines()
+        if not lines or not lines[0].startswith("# ") or not lines[0][2:].strip():
+            raise ValueError(f"维护日志首行必须是非空一级标题：{relative}")
+        metadata = {}
+        for raw_line in lines[1:]:
+            if raw_line.startswith("## "):
+                break
+            item = re.match(r"^-\s*([^：:]+)[：:]\s*(.*)$", raw_line.strip())
+            if item:
+                metadata[item.group(1).strip()] = item.group(2).strip()
+        status = metadata.get("状态", "")
+        if status not in {"进行中", "已完成", "部分完成", "待跟进"}:
+            raise ValueError(f"维护日志缺少有效状态：{relative}")
+        if metadata.get("开始日期") != match.group("date"):
+            raise ValueError(f"维护日志开始日期须与文件名一致：{relative}")
+
+        entries.append(
+            {
+                "source": relative,
+                "title": searchable_text(lines[0][2:]),
+                "date": match.group("date"),
+                "status": status,
+                "anchor": f"maintenance-{match.group('date')}-{match.group('slug')}",
+                "content": content,
+            }
+        )
+    entries.sort(key=lambda item: item["source"], reverse=True)
+    return entries
+
+
+def maintenance_href(target: str, source: str) -> str:
+    """Keep safe web links and resolve repository-relative links from the log's location."""
+    target = target.strip()
+    parsed = urlparse(target)
+    if parsed.scheme in {"https", "http"} and parsed.netloc:
+        return target
+    if parsed.scheme or parsed.netloc or not parsed.path or parsed.path.startswith("/"):
+        return ""
+    normalized = posixpath.normpath(posixpath.join(posixpath.dirname(source), parsed.path))
+    if normalized == ".." or normalized.startswith("../"):
+        return ""
+    result = f"{REPOSITORY_URL}/blob/main/{quote(normalized, safe='/')}"
+    if parsed.query:
+        result += f"?{parsed.query}"
+    if parsed.fragment:
+        result += f"#{quote(parsed.fragment, safe='-._~')}"
+    return result
+
+
+MAINTENANCE_INLINE = re.compile(
+    r"`([^`\n]+)`|\[([^\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)|\*\*([^*\n]+)\*\*"
+)
+
+
+def render_maintenance_inline(value: str, source: str) -> str:
+    """Render the small inline Markdown subset used by public maintenance logs."""
+    output = []
+    position = 0
+    for match in MAINTENANCE_INLINE.finditer(value):
+        output.append(escape(value[position:match.start()]))
+        if match.group(1) is not None:
+            output.append(f"<code>{escape(match.group(1))}</code>")
+        elif match.group(2) is not None:
+            label = render_maintenance_inline(match.group(2), source)
+            href = maintenance_href(match.group(3), source)
+            if href:
+                output.append(
+                    f'<a href="{escape(href)}" target="_blank" rel="noopener noreferrer">{label}</a>'
+                )
+            else:
+                output.append(label)
+        else:
+            output.append(f"<strong>{render_maintenance_inline(match.group(4), source)}</strong>")
+        position = match.end()
+    output.append(escape(value[position:]))
+    return "".join(output)
+
+
+def render_maintenance_markdown(value: str, source: str) -> str:
+    """Render public log structure without executing source HTML or adding a dependency."""
+    lines = value.splitlines()
+    output: list[str] = []
+    paragraph: list[str] = []
+    list_type = ""
+    title_skipped = False
+    index = 0
+
+    def flush_paragraph() -> None:
+        nonlocal paragraph
+        content = ""
+        for line in paragraph:
+            content = join_soft(content, line)
+        if content:
+            output.append(f"<p>{render_maintenance_inline(content, source)}</p>")
+        paragraph = []
+
+    def close_list() -> None:
+        nonlocal list_type
+        if list_type:
+            output.append(f"</{list_type}>")
+        list_type = ""
+
+    def cells(line: str) -> list[str]:
+        return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+    def is_table_separator(line: str) -> bool:
+        if "|" not in line:
+            return False
+        values = cells(line)
+        return bool(values) and all(
+            re.fullmatch(r":?-{3,}:?", value.replace(" ", "")) for value in values
+        )
+
+    while index < len(lines):
+        raw_line = lines[index]
+        line = raw_line.strip()
+        if not line:
+            flush_paragraph()
+            close_list()
+            index += 1
+            continue
+
+        fence = re.match(r"^(?P<fence>`{3,}|~{3,})", line)
+        if fence:
+            flush_paragraph()
+            close_list()
+            marker = fence.group("fence")
+            closing = re.compile(rf"^{re.escape(marker[0])}{{{len(marker)},}}\s*$")
+            code_lines = []
+            index += 1
+            while index < len(lines) and not closing.match(lines[index].strip()):
+                code_lines.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                raise ValueError(f"维护日志围栏代码块未闭合：{source}")
+            output.append(f"<pre><code>{escape(chr(10).join(code_lines))}</code></pre>")
+            index += 1
+            continue
+
+        heading = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if heading:
+            flush_paragraph()
+            close_list()
+            level = len(heading.group(1))
+            if level == 1 and not title_skipped:
+                title_skipped = True
+            else:
+                target_level = min(6, max(3, level + 1))
+                output.append(
+                    f"<h{target_level}>{render_maintenance_inline(heading.group(2), source)}</h{target_level}>"
+                )
+            index += 1
+            continue
+
+        if "|" in line and index + 1 < len(lines) and is_table_separator(lines[index + 1].strip()):
+            flush_paragraph()
+            close_list()
+            headers = cells(line)
+            separators = cells(lines[index + 1].strip())
+            if len(headers) != len(separators) or not headers:
+                raise ValueError(f"维护日志表格表头与分隔行列数不一致：{source}")
+            output.append('<div class="maintenance-table-wrap"><table><thead><tr>')
+            output.extend(f"<th>{render_maintenance_inline(cell, source)}</th>" for cell in headers)
+            output.append("</tr></thead><tbody>")
+            index += 2
+            while index < len(lines):
+                row = lines[index].strip()
+                if not row or "|" not in row:
+                    break
+                values = cells(row)
+                if len(values) != len(headers):
+                    raise ValueError(f"维护日志表格正文列数不一致：{source}")
+                output.append("<tr>")
+                output.extend(f"<td>{render_maintenance_inline(cell, source)}</td>" for cell in values)
+                output.append("</tr>")
+                index += 1
+            output.append("</tbody></table></div>")
+            continue
+
+        item = re.match(r"^(?P<marker>[-+*]|\d+[.)])\s+(?P<body>.+)$", line)
+        if item:
+            flush_paragraph()
+            next_type = "ol" if item.group("marker")[0].isdigit() else "ul"
+            if list_type != next_type:
+                close_list()
+                output.append(f"<{next_type}>")
+                list_type = next_type
+            output.append(f"<li>{render_maintenance_inline(item.group('body'), source)}</li>")
+            index += 1
+            continue
+
+        if line.startswith(">"):
+            flush_paragraph()
+            close_list()
+            output.append(f"<blockquote>{render_maintenance_inline(line[1:].strip(), source)}</blockquote>")
+            index += 1
+            continue
+
+        if re.fullmatch(r"(?:-{3,}|\*{3,}|_{3,})", line):
+            flush_paragraph()
+            close_list()
+            output.append("<hr>")
+            index += 1
+            continue
+
+        close_list()
+        paragraph.append(line)
+        index += 1
+
+    flush_paragraph()
+    close_list()
+    return "\n".join(output)
+
+
+def render_maintenance(entries: list[dict]) -> str:
+    """Render one chronological public page from the maintenance event files."""
+    navigation = ""
+    if entries:
+        items = "".join(
+            f'''<li><a href="#{entry["anchor"]}"><time datetime="{entry["date"]}">{entry["date"]}</time><span>{escape(entry["title"])}</span></a></li>'''
+            for entry in entries
+        )
+        navigation = f'''<nav class="ack-nav maintenance-nav" aria-label="维护日志目录">
+  <ol>{items}</ol>
+</nav>'''
+
+    articles = []
+    for entry in entries:
+        source_url = f'{REPOSITORY_URL}/blob/main/{quote(entry["source"], safe="/")}'
+        articles.append(
+            f'''<article class="maintenance-entry" id="{entry["anchor"]}">
+  <header class="maintenance-entry-head">
+    <p class="kicker">{entry["date"]} / Maintenance event</p>
+    <h2>{escape(entry["title"])}</h2>
+    <a class="source-link" href="{source_url}" target="_blank" rel="noopener noreferrer">GitHub 原始日志 ↗</a>
+  </header>
+  <div class="maintenance-markdown">{render_maintenance_markdown(entry["content"], entry["source"])}</div>
+</article>'''
+        )
+    content = "".join(articles) if articles else '<p class="empty-state">MAINTENANCE/目录中暂无可公开展示的维护事件。</p>'
+
+    return "\n".join(
+        (
+            page_head(
+                "维护日志",
+                "idea-tree代码、工作流、静态站与部署维护的公开事件记录。",
+                path="maintenance.html",
+            ),
+            page_header(detail=True),
+            f'''<main id="main-content" class="shell acknowledgements-layout maintenance-layout">
+  <aside class="acknowledgements-aside maintenance-aside">
+    <p class="kicker">Maintenance / public history</p>
+    <h1>维护日志</h1>
+    <p class="detail-lede">记录为什么修改、如何实施、遇到什么故障、怎样修复，以及本地验证、云端校验、Pages部署和公开站验收的边界。</p>
+    <p class="definition">按维护事件开始日期倒序排列，共 {len(entries)} 篇。日志中的“当前”“最终”等表述只代表该篇记录时点；后续状态以更新后的日志和云端复核为准。</p>
+    <p class="ack-source">本页由MAINTENANCE/YYYY/MM/中的公开Markdown自动生成，不进入正式节点统计、公开JSON、INDEX、REVIEW或首页全文搜索。</p>
+    <a class="source-link" href="{REPOSITORY_URL}/blob/main/MAINTENANCE/README.md" target="_blank" rel="noopener noreferrer">查看日志规则 ↗</a>
+    {navigation}
+  </aside>
+  <div class="implementations-content maintenance-content">{content}</div>
+</main>''',
+            page_footer(),
+        )
+    )
+
+
 def searchable_text(value: object) -> str:
     """Normalize public source text while preserving Latin word boundaries."""
     if isinstance(value, list):
@@ -1206,6 +1500,7 @@ def render_index(
     <a class="acknowledgements-link acknowledgements-page-link" href="acknowledgements.html"><span>特别鸣谢</span><span>记录AI助手的工作与接续 →</span></a>
     <a class="acknowledgements-link implementations-link" href="implementations.html"><span>简易实现仓库</span><span>查看节点对应的实现与边界 →</span></a>
     <a class="acknowledgements-link reserve-link" href="non-startup-tech.html"><span>非创业技术储备</span><span>查看储备标题、简介与GitHub原文 →</span></a>
+    <a class="acknowledgements-link maintenance-link" href="maintenance.html"><span>维护日志</span><span>查看代码、部署与站点维护记录 →</span></a>
   </aside>
   <section class="catalog" aria-labelledby="catalog-title">
     <div class="catalog-head">
@@ -1803,6 +2098,7 @@ def render_llms_txt() -> str:
 - [节点索引]({public_url()}): 检索全部正式节点、死法分布、复核动态与公开档案。
 - [科技树关系图]({public_url('graph.html')}): 查看由正式YAML双端声明生成的直接派生、一般相关与孤立节点。
 - [实现仓登记]({public_url('implementations.html')}): 查看正式节点对应的简易实现仓库及已核实的实现边界。
+- [维护日志]({public_url('maintenance.html')}): 查看代码、工作流、静态站与部署维护的事件记录和验证边界。
 
 ## 仓库公开文档
 
@@ -1896,6 +2192,7 @@ def build_site(root: Path, output: Path) -> int:
     acknowledgements = parse_acknowledgements(root)
     implementations = parse_implementations(root)
     reserve = parse_public_reserve(root)
+    maintenance = parse_maintenance_logs(root)
     assets = root / "site" / "assets"
     if (
         not (assets / "style.css").is_file()
@@ -1920,6 +2217,9 @@ def build_site(root: Path, output: Path) -> int:
     )
     (output / "non-startup-tech.html").write_text(
         render_public_reserve(reserve), encoding="utf-8"
+    )
+    (output / "maintenance.html").write_text(
+        render_maintenance(maintenance), encoding="utf-8"
     )
     for file, data in records:
         _node_number, node_id = node_identity(file, data)

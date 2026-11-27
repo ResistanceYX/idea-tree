@@ -39,7 +39,7 @@
   登记不代表节点目标已完整实现）。
 - **离线备份与恢复**：[BACKUP.md](BACKUP.md)（月度U盘备份的范围、执行记录与恢复方法）。
 - **维护事件日志**：[MAINTENANCE/README.md](MAINTENANCE/README.md)（按年月归档代码、工作流、静态站与部署维护的目标、流程、故障根因和验证边界；
-  按一次完整维护事件合并记录，不逐 `commit` 抄写；日志在公开仓库可见，但不自动进入静态站）。
+  按一次完整维护事件合并记录，不逐 `commit` 抄写；[公开维护日志页](https://resistanceyx.github.io/idea-tree/maintenance.html)由事件日志自动生成并随 Pages 工作流同步）。
 - **死因保质期复核**：[REVIEW.md](REVIEW.md)（由节点与人工复核记录自动生成；新节点自动进入待复核清单，复核结论写入[review_records.yaml](review_records.yaml)，
   请勿手工编辑表格）。
 - **决策时段建议**：涉及判断性的修改（复活状态、置信度、分类法变动），尽量避免在凌晨0点至5点定案，可等次日清醒后斟酌执行。

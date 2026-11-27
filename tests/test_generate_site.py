@@ -191,6 +191,24 @@ class SiteGeneratorTests(unittest.TestCase):
         file.write_text(node_text(node_id, title, number=number, **kwargs), encoding="utf-8")
         return file
 
+    def add_maintenance_log(
+        self,
+        root: Path,
+        day: str = "2026-11-26",
+        slug: str = "test-event",
+        title: str = "测试维护事件",
+        body: str = "## 1. 背景与目标\n\n验证公开维护日志生成。\n",
+        status: str = "待跟进",
+    ) -> Path:
+        year, month, _day = day.split("-")
+        file = root / "MAINTENANCE" / year / month / f"{day}-{slug}.md"
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(
+            f"# {title}\n\n- 状态：{status}\n- 开始日期：{day}\n- 完成日期：未完成\n\n{body}",
+            encoding="utf-8",
+        )
+        return file
+
     def set_relation(
         self,
         source: Path,
@@ -836,6 +854,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertTrue((output / "acknowledgements.html").is_file())
         self.assertTrue((output / "implementations.html").is_file())
         self.assertTrue((output / "non-startup-tech.html").is_file())
+        self.assertTrue((output / "maintenance.html").is_file())
         self.assertTrue((output / "nodes" / "alpha.html").is_file())
         self.assertTrue((output / "assets" / "style.css").is_file())
         self.assertTrue((output / "assets" / "site.js").is_file())
@@ -1492,7 +1511,7 @@ class SiteGeneratorTests(unittest.TestCase):
         self.assertEqual(re.findall(r"^## .+$", content, re.MULTILINE), ["## 公开站点", "## 仓库公开文档"])
         self.assertEqual(
             {label for label, _url in links},
-            {"节点索引", "科技树关系图", "实现仓登记", "死法分类法", "复核清单"},
+            {"节点索引", "科技树关系图", "实现仓登记", "维护日志", "死法分类法", "复核清单"},
         )
         self.assertNotIn("evidence/", content)
         self.assertNotIn("non-startup-tech/", content)
@@ -1510,6 +1529,114 @@ class SiteGeneratorTests(unittest.TestCase):
                     relative = unquote(parsed.path[len(prefix):])
                     self.assertTrue((root / relative).is_file())
 
+    def test_maintenance_page_collects_logs_and_renders_public_markdown(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        self.add_maintenance_log(
+            root,
+            day="2026-11-25",
+            slug="older-event",
+            title="较早维护事件",
+            body="## 1. 背景与目标\n\n较早事件正文。\n",
+            status="已完成",
+        )
+        body = """## 1. 背景与目标
+
+段落包含**粗体**、`行内代码`和[生成器](../../../scripts/generate_site.py)。
+
+1. 第一项
+2. 第二项
+
+| 视口 | 结果 |
+|---|---|
+| 320px | 通过 |
+
+```text
+<raw>code</raw>
+```
+"""
+        self.add_maintenance_log(root, title="较新维护事件", body=body)
+        output = self.build(root)
+
+        index = (output / "index.html").read_text(encoding="utf-8")
+        content = (output / "maintenance.html").read_text(encoding="utf-8")
+        self.assertLess(index.index("reserve-link"), index.index("maintenance-link"))
+        self.assertIn('href="maintenance.html"', index)
+        self.assertLess(content.index("较新维护事件"), content.index("较早维护事件"))
+        self.assertIn('id="maintenance-2026-11-26-test-event"', content)
+        self.assertIn("<strong>粗体</strong>", content)
+        self.assertIn("<code>行内代码</code>", content)
+        self.assertIn(
+            f'href="{REPOSITORY_URL}/blob/main/scripts/generate_site.py"',
+            content,
+        )
+        self.assertRegex(content, r"<ol>\s*<li>第一项</li>\s*<li>第二项</li>\s*</ol>")
+        self.assertIn('<div class="maintenance-table-wrap"><table>', content)
+        self.assertIn("<th>视口</th>", content)
+        self.assertIn("<td>320px</td>", content)
+        self.assertIn("<pre><code>&lt;raw&gt;code&lt;/raw&gt;</code></pre>", content)
+        self.assertIn("MAINTENANCE/2026/11/2026-11-26-test-event.md", content)
+        self.assertNotIn("较新维护事件", (output / "data" / "nodes.json").read_text(encoding="utf-8"))
+        sitemap = (output / "sitemap.xml").read_text(encoding="utf-8")
+        entry = sitemap.split(f"<loc>{PUBLIC_SITE_URL}/maintenance.html</loc>", 1)[1].split("</url>", 1)[0]
+        self.assertNotIn("<lastmod>", entry)
+
+    def test_maintenance_markdown_escapes_html_and_drops_unsafe_links(self) -> None:
+        root = self.make_repo()
+        self.add_node(root, "alpha", "甲节点")
+        body = """## 1. 安全边界
+
+原始<script>alert(1)</script>不执行。
+
+[不安全链接](javascript:alert(1))只保留文字。
+
+[安全链接](https://example.com/)可以访问。
+
+`</script><script>alert("code")</script>`只显示为代码。
+"""
+        self.add_maintenance_log(root, body=body)
+        output = self.build(root)
+        content = (output / "maintenance.html").read_text(encoding="utf-8")
+
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", content)
+        self.assertNotIn("<script>alert(1)</script>", content)
+        self.assertNotIn("javascript:", content)
+        self.assertIn("不安全链接只保留文字", content)
+        self.assertIn('href="https://example.com/"', content)
+        self.assertIn("&lt;/script&gt;&lt;script&gt;alert", content)
+
+    def test_maintenance_log_invalid_path_or_metadata_fails_build(self) -> None:
+        for case in ("path", "date", "status"):
+            with self.subTest(case=case):
+                root = self.make_repo()
+                self.add_node(root, "alpha", "甲节点")
+                if case == "path":
+                    file = root / "MAINTENANCE" / "2026" / "11" / "undated.md"
+                    file.parent.mkdir(parents=True)
+                    file.write_text("# 错误路径\n", encoding="utf-8")
+                else:
+                    file = self.add_maintenance_log(root)
+                    content = file.read_text(encoding="utf-8")
+                    if case == "date":
+                        content = content.replace("- 开始日期：2026-11-26", "- 开始日期：2026-11-25")
+                    else:
+                        content = content.replace("- 状态：待跟进", "- 状态：未知")
+                    file.write_text(content, encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    self.build(root)
+
+    def test_maintenance_changes_trigger_pages_and_current_docs_match(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        workflow = (repository / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+        readme = (repository / "README.md").read_text(encoding="utf-8")
+        maintenance_readme = (repository / "MAINTENANCE" / "README.md").read_text(encoding="utf-8")
+
+        self.assertEqual(workflow.count('- "MAINTENANCE/**"'), 2)
+        self.assertIn("maintenance.html", readme)
+        self.assertIn("maintenance.html", maintenance_readme)
+        self.assertNotIn("不自动进入公开静态站", maintenance_readme)
+        self.assertNotIn("不自动进入静态站", readme)
+
     def test_layout_css_preserves_text_overflow_invariants(self) -> None:
         repository = Path(__file__).resolve().parents[1]
         css = (repository / "site" / "assets" / "style.css").read_text(encoding="utf-8")
@@ -1522,6 +1649,9 @@ class SiteGeneratorTests(unittest.TestCase):
             ".acknowledgements-content",
             ".implementation-node",
             ".implementation-repository",
+            ".maintenance-content",
+            ".maintenance-entry",
+            ".maintenance-markdown",
             ".graph-map-panel",
             ".graph-inspector",
         )

@@ -252,7 +252,8 @@ h1, h2, h3 { font-family: var(--serif); }
 .acknowledgements-link:hover span:last-child { color: var(--cyan-soft); }
 .acknowledgements-link.acknowledgements-page-link,
 .acknowledgements-link.implementations-link,
-.acknowledgements-link.reserve-link { margin-top: 0; border-top: 0; }
+.acknowledgements-link.reserve-link,
+.acknowledgements-link.maintenance-link { margin-top: 0; border-top: 0; }
 .acknowledgements-layout { display: grid; gap: 40px; padding: 40px 0 72px; }
 .acknowledgements-aside { min-width: 0; align-self: start; }
 .acknowledgements-aside h1 { margin: 0; color: var(--gold-soft); font-size: clamp(36px, 4vw, 48px); line-height: 1.25; }
@@ -299,6 +300,36 @@ h1, h2, h3 { font-family: var(--serif); }
 .reserve-record h3 { margin: 0; color: var(--text); font-size: 22px; line-height: 1.5; }
 .reserve-record p { max-width: 70ch; margin: 10px 0 0; color: var(--muted); font-size: 15px; line-height: 1.85; }
 .reserve-source { display: inline-flex; align-items: center; min-height: 44px; color: var(--cyan-soft); font-size: 13px; font-weight: 700; }
+
+.maintenance-content, .maintenance-entry, .maintenance-markdown { min-width: 0; }
+.maintenance-nav a { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; padding: 7px 0; }
+.maintenance-nav time { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.maintenance-nav span { overflow-wrap: anywhere; }
+.maintenance-entry { padding: 0 0 48px; scroll-margin-top: 92px; }
+.maintenance-entry + .maintenance-entry { padding-top: 44px; border-top: 1px solid var(--line-strong); }
+.maintenance-entry-head { margin-bottom: 28px; }
+.maintenance-entry-head h2 { margin: 0 0 12px; color: var(--gold-soft); font-size: clamp(26px, 3vw, 34px); line-height: 1.4; }
+.maintenance-markdown { max-width: 74ch; }
+.maintenance-markdown h3 { margin: 34px 0 12px; color: var(--text); font-size: 23px; line-height: 1.5; }
+.maintenance-markdown h4 { margin: 28px 0 10px; color: var(--gold-soft); font-size: 18px; line-height: 1.55; }
+.maintenance-markdown h5, .maintenance-markdown h6 { margin: 24px 0 8px; color: var(--text); font-size: 16px; }
+.maintenance-markdown p, .maintenance-markdown li { font-size: 16px; line-height: 1.85; overflow-wrap: anywhere; }
+.maintenance-markdown p { margin: 0 0 18px; }
+.maintenance-markdown ul, .maintenance-markdown ol { margin: 0 0 22px; padding-left: 30px; }
+.maintenance-markdown li { padding-left: 4px; }
+.maintenance-markdown li + li { margin-top: 10px; }
+.maintenance-markdown li::marker { color: var(--gold); font-family: var(--mono); }
+.maintenance-markdown a { color: var(--cyan-soft); overflow-wrap: anywhere; }
+.maintenance-markdown strong { color: var(--text); font-weight: 750; }
+.maintenance-markdown code { font-family: var(--mono); font-size: .9em; overflow-wrap: anywhere; }
+.maintenance-markdown pre { max-width: 100%; margin: 0 0 22px; padding: 18px; overflow-x: auto; background: var(--surface); scrollbar-width: thin; }
+.maintenance-markdown pre code { font-size: 13px; line-height: 1.7; white-space: pre; overflow-wrap: normal; }
+.maintenance-markdown blockquote { margin: 0 0 22px; padding-left: 16px; border-left: 1px solid var(--line-strong); color: var(--muted); }
+.maintenance-markdown hr { margin: 30px 0; border: 0; border-top: 1px solid var(--line); }
+.maintenance-table-wrap { max-width: 100%; margin: 0 0 24px; overflow-x: auto; scrollbar-width: thin; }
+.maintenance-table-wrap table { width: 100%; min-width: 560px; border-collapse: collapse; }
+.maintenance-table-wrap th, .maintenance-table-wrap td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; }
+.maintenance-table-wrap th { color: var(--gold-soft); font-weight: 700; }
 
 .relation-graph-link, .graph-detail-link, .graph-focus-link {
   display: inline-flex;
@@ -468,6 +499,7 @@ h1, h2, h3 { font-family: var(--serif); }
   .acknowledgements-page-link { order: 7; }
   .implementations-link { order: 8; }
   .reserve-link { order: 9; }
+  .maintenance-link { order: 10; }
   .catalog-head { flex-wrap: wrap; }
   .mobile-filter-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--cyan-soft); font-size: 13px; font-weight: 650; }
   .advanced-filters > summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; color: var(--gold-soft); cursor: pointer; font-size: 13px; font-weight: 650; list-style: none; }
